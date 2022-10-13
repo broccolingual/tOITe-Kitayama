@@ -1,0 +1,4 @@
+2022-09-29 13:19:10,311 - tOITe-Log - DEBUG - Read sound/correct_24.wav: 24000[Hz], 0.93[s]
+2022-09-29 13:19:10,527 - tOITe-Log - DEBUG - Read sound/wrong_24.wav: 24000[Hz], 0.98[s]
+2022-09-29 13:19:10,738 - tOITe-Log - DEBUG - Read sound/card_set_24.wav: 24000[Hz], 1.88[s]
+2022-09-29 13:19:12,760 - tOITe-Log - DEBUG - Read sound/tutorial2_24.wav: 24000[Hz], 5.69[s]
