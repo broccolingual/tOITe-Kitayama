@@ -1,23 +1,25 @@
 import time
+from turtle import right
 import cv2
 import math
 import mediapipe as mp
 from numpy import uint8
-from Classes.ClsImageProcess import ClsImageProcess
-from Classes.JudgePose import judge_pose
+
+from ClsImageProcess import ClsImageProcess
+from JudgePose import judge_pose
 
 
 class ClsImageProcessPose(ClsImageProcess):
     def initProcess(self):
         self.isROIdefined = False
         self.ratioROI = 1
-        self.blPoseCorrect = False  # ポーズができたかのフラグ
-        self.sTimeAtCorrect = 0  # ポーズができた時の時間を格納する場所
-        self.sJudgeMargin = 20
+        self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
+        self.pastFrameNum = 60
+        self.pastLandmarks = [] * self.pastFrameNum
 
         # imOverlayOrig_inst = cv2.imread('./images/sign_inst2.png', -1)
         # self.imOverlayMask_inst = imOverlayOrig_inst[:, :, 3]
@@ -41,51 +43,15 @@ class ClsImageProcessPose(ClsImageProcess):
     def setRatioROI(self, ratioROI):
         self.ratioROI = ratioROI
 
-    def defineCorrectPose(self):
-        self.correctAngles = list(range(8))
-        self.correctAngles[0] = 143.5885
-        self.correctAngles[1] = 151.5676
-        self.correctAngles[2] = 176.0291
-        self.correctAngles[3] = 183.4004
-        self.correctAngles[4] = 141.0687
-        self.correctAngles[5] = 161.5590
-        self.correctAngles[6] = 185.0458
-        self.correctAngles[7] = 170.7074
-        print(self.correctAngles)
-
     def defineROI(self, img):
         width = int(img.shape[1] * self.ratioROI)
         self.leftPosROI = int((img.shape[1] - width) / 2)
         self.rightPosROI = img.shape[1] - self.leftPosROI
         self.isROIdefined = True
 
-    def reset(self):
-        self.blPoseCorrect = False  # ポーズができたかのフラグ
-        self.sTimeAtCorrect = 0  # ポーズができた時の時間を格納する場所
-
-    def drawLandamrks(self, vPoints, sLineWidth, vLineColor, sCircleRadius, vCircleColor):
-        self.drawLine(vPoints[11], vPoints[12], sLineWidth, vLineColor)
-        self.drawLine(vPoints[11], vPoints[23], sLineWidth, vLineColor)
-        self.drawLine(vPoints[12], vPoints[24], sLineWidth, vLineColor)
-        self.drawLine(vPoints[23], vPoints[24], sLineWidth, vLineColor)
-
-        for i, point in enumerate(vPoints):
-            if 0 <= point[0] <= self.imSensor.shape[1] and 0 <= point[1] <= self.imSensor.shape[0]:
-                if 11 <= i <= 14 or 23 <= i <= 26:
-                    self.drawLine(vPoints[i], vPoints[i + 2],
-                                  sLineWidth, vLineColor)
-                    cv2.circle(self.imSensor,
-                               center=point,
-                               radius=sCircleRadius,
-                               color=vCircleColor,
-                               thickness=-1,
-                               lineType=cv2.LINE_4)
-
-    def drawLine(self, vPoint1, vPoint2, sLineWidth, vLineColor):
-        cv2.line(self.imSensor, vPoint1, vPoint2,
-                 color=vLineColor,
-                 thickness=sLineWidth,
-                 lineType=cv2.LINE_4)
+    def drawCircle(self, x, y, r):
+        cv2.circle(self.imSensor, (x, y), int(r), (255, 0, 0),
+                   1, lineType=cv2.LINE_8, shift=0)
 
     def putText(self, text, x, y):
         cv2.putText(
@@ -96,8 +62,11 @@ class ClsImageProcessPose(ClsImageProcess):
         radian = math.atan2(y2-y1, x2-x1)
         return radian * 180 / math.pi
 
+    def calcDistance(self, x1, y1, x2, y2):
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
     def process(self):
-        if self.isROIdefined == False:
+        if self.isROIdefined is False:
             self.defineROI(self.imSensor)
         imROI = self.imSensor[:, self.leftPosROI:self.rightPosROI]
 
@@ -110,10 +79,23 @@ class ClsImageProcessPose(ClsImageProcess):
 
         if results.pose_landmarks:
             # x座標に切り抜いた左側の位置を足し合わす
-            vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI), int(landmark.y*imROI.shape[0]))
+            vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
+                        int(landmark.y*imROI.shape[0]))
                        for landmark in results.pose_landmarks.landmark]
 
-            self.drawLandamrks(vPoints, 2, (0, 255, 0), 3, (0, 0, 255))
+            # add past frame
+            self.pastLandmarks.insert(0, vPoints)
+
+            # delete past frame
+            if len(self.pastLandmarks) >= self.pastFrameNum:
+                del self.pastLandmarks[-1]
+
+            # draw landmarks
+            self.mp_drawing.draw_landmarks(
+                self.imSensor, results.pose_landmarks,
+                self.mp_pose.POSE_CONNECTIONS,
+                connection_drawing_spec=self.mp_drawing.DrawingSpec(
+                    thickness=2, circle_radius=10))
 
             # judge shoulder degree
             left_shoulder = vPoints[11]
@@ -126,25 +108,33 @@ class ClsImageProcessPose(ClsImageProcess):
             elif shoulder_deg > 15:  # body right
                 self.putText("body right", 20, 60)
 
-                # ポーズが正解だった時にクラスの判定フラグをTrueにする。また、ここで正解した時間を記録する
-                # if blPoseCorrectOnce is True:
-                #     self.blPoseCorrect = True
-                #     self.sTimeAtCorrect = time.time()
+            # judge punch
+            left_elbow = vPoints[13]
+            right_elbow = vPoints[14]
+            left_wrist = vPoints[15]
+            right_wrist = vPoints[16]
+            left_hip = vPoints[23]
+            right_hip = vPoints[24]
 
-                # クラスのポーズ判定フラグによって左上に表示する画像を変える
-        if self.blPoseCorrect is True:
-            # self.window.setOverlayImage(
-            #     self.imOverlayOrig_correct, self.imOverlayMask_correct)
-            self.imProcessed = self.imSensor
+            body_height = self.calcDistance(
+                (left_shoulder[0] + right_shoulder[0]) /
+                2, (left_shoulder[1] + right_shoulder[1]) / 2,
+                (left_hip[0] + right_hip[0]) / 2,
+                (left_hip[1] + right_hip[1]) / 2)
 
-            # ポーズ判定で正解して３秒以上経過したらクラスのフラグをFalseにし、processの返り値をTrueにする
-            if time.time() - self.sTimeAtCorrect >= 2:
-                self.blPoseCorrect = False
-                return True
-        else:
-            # self.window.setOverlayImage(
-            #     self.imOverlayOrig_inst, self.imOverlayMask_inst)
-            self.imProcessed = self.imSensor
+            self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
+            self.drawCircle(
+                right_wrist[0], right_wrist[1], body_height/3)
+
+            if ((left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
+                self.putText("punch left", 20, 80)
+            if ((right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and right_wrist[1] < right_elbow[1]:
+                self.putText("punch right", 20, 100)
+
+            # judge other
+
+        # 正解の時はreturn Trueする
+        self.imProcessed = self.imSensor
 
         return 0
 
@@ -177,8 +167,6 @@ if __name__ == '__main__':
         sFlipMode)
 
     proc.createWindows()
-    proc.setRatioROI(1)
-    proc.defineCorrectPose()
 
     while True:
         proc.execute()
