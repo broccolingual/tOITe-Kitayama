@@ -39,8 +39,6 @@ def procPose_Q(dictArgument):
     if event == "POSE_Q":
         dictArgument["Start time"] = cState.updateState("POSE_IMGPROC")
         proc.createWindows()
-        proc.setRatioROI(1)
-        proc.defineCorrectPose()
 
 
 # POSE_IMGPROCモード処理 ======================================================

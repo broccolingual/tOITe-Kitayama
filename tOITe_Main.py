@@ -8,9 +8,7 @@ import os
 
 from functions.ModeFuncBase import *
 from functions.ModeFuncTutorial import *
-from functions.ModeFuncSpeech import *
 from functions.ModeFuncPose import *
-from functions.ModeFuncSelect import *
 from functions.CardFunc import *
 from functions.common import getDictFlag
 from Classes.ClsCtrlStateAndWindow import ClsCtrlStateAndWindow
@@ -67,10 +65,7 @@ def setEnvironment():
 def setModeFuncsAndLayouts(blDebug):
     dictWindow = createDictWindow()
     dictWindow = updateDictWindow_Tutorial(dictWindow)
-    dictWindow = updateDictWindow_Speech(dictWindow)
     dictWindow = updateDictWindow_Pose(dictWindow)
-#	dictWindow = updateDictWindow_Select(dictWindow)
-#	dictWindow = updateDictWindow_QR(dictWindow)
 
     if blDebug == False:
         for sKey in dictWindow:
@@ -82,11 +77,7 @@ def setModeFuncsAndLayouts(blDebug):
 
     dictProc = createDictProc()
     dictProc = updateDictProc_Tutorial(dictProc)
-    dictProc = updateDictProc_Speech(dictProc)
     dictProc = updateDictProc_Pose(dictProc)
-#	dictProc = updateDictProc_Select(dictProc)
-#	dictProc = updateDictProc_QR(dictProc)
-
     dictFlag = getDictFlag()
 
     return cState, dictProc, dictFlag

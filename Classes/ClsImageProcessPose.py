@@ -5,8 +5,7 @@ import math
 import mediapipe as mp
 from numpy import uint8
 
-from ClsImageProcess import ClsImageProcess
-from JudgePose import judge_pose
+from Classes.ClsImageProcess import ClsImageProcess
 
 
 class ClsImageProcessPose(ClsImageProcess):
