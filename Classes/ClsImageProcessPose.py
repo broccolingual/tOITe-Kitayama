@@ -12,6 +12,7 @@ class ClsImageProcessPose(ClsImageProcess):
     def initProcess(self):
         self.isROIdefined = False
         self.ratioROI = 1
+        self.end = False
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(
@@ -64,6 +65,51 @@ class ClsImageProcessPose(ClsImageProcess):
     def calcDistance(self, x1, y1, x2, y2):
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
+    def judgeBodyDegree(self, vPoints: list, LR: str) -> bool:
+        """
+        LR : "left" or "right" の 文字列を入れる
+        """
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
+                                       left_shoulder[0], left_shoulder[1])
+        if LR == "left" and shoulder_deg > 15:
+            return True
+        elif LR == "right" and shoulder_deg < -15:
+            return True
+        return False
+
+    def judgePunch(self, vPoints: list, LR: str) -> bool:
+        """
+        LR : "left" or "right" の 文字列を入れる
+        """
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        left_elbow = vPoints[13]
+        right_elbow = vPoints[14]
+        left_wrist = vPoints[15]
+        right_wrist = vPoints[16]
+        left_hip = vPoints[23]
+        right_hip = vPoints[24]
+
+        body_height = self.calcDistance(
+            (left_shoulder[0] + right_shoulder[0]) /
+            2, (left_shoulder[1] + right_shoulder[1]) / 2,
+            (left_hip[0] + right_hip[0]) / 2,
+            (left_hip[1] + right_hip[1]) / 2)
+
+        self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
+        self.drawCircle(
+            right_wrist[0], right_wrist[1], body_height/3)
+
+        if (LR == "left" and
+                (left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
+            return True
+        elif (LR == "right" and
+              (right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and right_wrist[1] < right_elbow[1]:
+            return True
+        return False
+
     def process(self):
         if self.isROIdefined is False:
             self.defineROI(self.imSensor)
@@ -97,40 +143,21 @@ class ClsImageProcessPose(ClsImageProcess):
                     thickness=2, circle_radius=10))
 
             # judge shoulder degree
-            left_shoulder = vPoints[11]
-            right_shoulder = vPoints[12]
-            shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
-                                           left_shoulder[0], left_shoulder[1])
-            self.putText(f"Body deg: {round(shoulder_deg, 1)}", 20, 20)
-            if shoulder_deg < -15:  # body left
+            if self.judgeBodyDegree(vPoints, "left"):
                 self.putText("body left", 20, 40)
-            elif shoulder_deg > 15:  # body right
+            elif self.judgeBodyDegree(vPoints, "right"):
                 self.putText("body right", 20, 60)
 
             # judge punch
-            left_elbow = vPoints[13]
-            right_elbow = vPoints[14]
-            left_wrist = vPoints[15]
-            right_wrist = vPoints[16]
-            left_hip = vPoints[23]
-            right_hip = vPoints[24]
-
-            body_height = self.calcDistance(
-                (left_shoulder[0] + right_shoulder[0]) /
-                2, (left_shoulder[1] + right_shoulder[1]) / 2,
-                (left_hip[0] + right_hip[0]) / 2,
-                (left_hip[1] + right_hip[1]) / 2)
-
-            self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
-            self.drawCircle(
-                right_wrist[0], right_wrist[1], body_height/3)
-
-            if ((left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
+            if self.judgePunch(vPoints, "left"):
                 self.putText("punch left", 20, 80)
-            if ((right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and right_wrist[1] < right_elbow[1]:
+            elif self.judgePunch(vPoints, "right"):
                 self.putText("punch right", 20, 100)
 
-            # judge other
+            # end
+            if self.end is True:
+                self.end = False
+                return True
 
         # 正解の時はreturn Trueする
         self.imProcessed = self.imSensor

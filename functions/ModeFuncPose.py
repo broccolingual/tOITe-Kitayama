@@ -73,4 +73,4 @@ def procPose_correct(dictArgument):
     if event == "POSE_CORRECT":
         cCtrlCard.write_result("pose", "T")
         dictArgument["Start time"] = cState.updateState("SELECT_GAME")
-        cState.dictWindow["SELECT_GAME"]["姿勢推定"].update(disabled=True)
+        cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
