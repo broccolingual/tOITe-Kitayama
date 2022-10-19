@@ -1,9 +1,6 @@
-import time
-from turtle import right
 import cv2
 import math
 import mediapipe as mp
-from numpy import uint8
 
 from Classes.ClsImageProcess import ClsImageProcess
 
@@ -69,8 +66,11 @@ class ClsImageProcessPose(ClsImageProcess):
         """
         LR : "left" or "right" の 文字列を入れる
         """
+        # define point
         left_shoulder = vPoints[11]
         right_shoulder = vPoints[12]
+
+        # judge logic
         shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
                                        left_shoulder[0], left_shoulder[1])
         if LR == "left" and shoulder_deg > 15:
@@ -83,6 +83,7 @@ class ClsImageProcessPose(ClsImageProcess):
         """
         LR : "left" or "right" の 文字列を入れる
         """
+        # define point
         left_shoulder = vPoints[11]
         right_shoulder = vPoints[12]
         left_elbow = vPoints[13]
@@ -92,21 +93,59 @@ class ClsImageProcessPose(ClsImageProcess):
         left_hip = vPoints[23]
         right_hip = vPoints[24]
 
+        # judge logic
         body_height = self.calcDistance(
             (left_shoulder[0] + right_shoulder[0]) /
             2, (left_shoulder[1] + right_shoulder[1]) / 2,
             (left_hip[0] + right_hip[0]) / 2,
             (left_hip[1] + right_hip[1]) / 2)
 
-        self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
-        self.drawCircle(
-            right_wrist[0], right_wrist[1], body_height/3)
+        # for debug
+        # self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
+        # self.drawCircle(
+        #     right_wrist[0], right_wrist[1], body_height/3)
 
         if (LR == "left" and
                 (left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
             return True
         elif (LR == "right" and
               (right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and right_wrist[1] < right_elbow[1]:
+            return True
+        return False
+
+    def judgeGuard(self, vPoints: list) -> bool:
+        # define point
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        left_elbow = vPoints[13]
+        left_wrist = vPoints[15]
+        right_elbow = vPoints[14]
+        right_wrist = vPoints[16]
+
+        # judge logic
+        # TODO: ZeroDivision Errorの修正
+        rel_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
+                   (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
+        lel_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
+                   (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+
+        if (0.9 > rel_cos > 0.2) & (0.9 > lel_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
+            return True
+        return False
+
+    def judgeHeal(self, vPoints: list) -> bool:
+        # define point
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        left_wrist = vPoints[15]
+        right_wrist = vPoints[16]
+        left_thumb = vPoints[21]
+        right_thumb = vPoints[22]
+
+        # judge logic
+        length1 = abs(left_shoulder[0]-right_shoulder[0]) / 3
+        length2 = abs(left_shoulder[0]-right_shoulder[0]) / 5
+        if ((right_wrist[0]-left_wrist[0])**2+(right_wrist[1]-left_wrist[1])**2 < length1**2) and ((right_thumb[0]-left_thumb[0])**2+(right_thumb[1]-left_thumb[1])**2 < length2**2):
             return True
         return False
 
@@ -154,6 +193,14 @@ class ClsImageProcessPose(ClsImageProcess):
             elif self.judgePunch(vPoints, "right"):
                 self.putText("punch right", 20, 100)
 
+            # judge guard
+            if self.judgeGuard(vPoints):
+                self.putText("guard", 20, 120)
+
+            # judge heal
+            if self.judgeHeal(vPoints):
+                self.putText("heal", 20, 140)
+
             # end
             if self.end is True:
                 self.end = False
@@ -166,7 +213,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
 
 if __name__ == '__main__':
-    CProc = ClsImageProcessPose
+    CProc = Cleft_shoulderImageProcessPose
     import os
 
     if os.name == 'nt':
@@ -175,21 +222,21 @@ if __name__ == '__main__':
         strPlatform = 'JETSON'
 
     sCameraNumber = 0
-    sSensorWidth = 320
+    sSensoright_wristidth = 320
     sSensorHeight = 180
-    sMonitorWidth = 1024
+    sMonitoright_wristidth = 1024
     sMonitorHeight = 600
-    tplWindowName = ('full',)
+    tpleft_wristindowName = ('full',)
     sFlipMode = 1
 
     proc = CProc(
         strPlatform,
         sCameraNumber,
-        sSensorWidth,
+        sSensoright_wristidth,
         sSensorHeight,
-        sMonitorWidth,
+        sMonitoright_wristidth,
         sMonitorHeight,
-        tplWindowName,
+        tpleft_wristindowName,
         sFlipMode)
 
     proc.createWindows()
