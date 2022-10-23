@@ -196,7 +196,7 @@ class ClsImageProcessPose(ClsImageProcess):
             currentPose = [False, False, False, False, False, False]
             # x座標に切り抜いた左側の位置を足し合わす
             vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
-                        int(landmark.y*imROI.shape[0]))
+                        int(landmark.y*imROI.shape[0]), landmark.visibility)
                        for landmark in results.pose_landmarks.landmark]
 
             # add landmarks

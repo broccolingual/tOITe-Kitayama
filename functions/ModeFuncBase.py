@@ -25,7 +25,7 @@ def createDictWindow():
     layoutStandby = make_fullimage_layout("images/standby.png", "STANDBY")
     layoutTitle = make_fullimage_layout("images/title.png", "TITLE")
     layoutSelect_Game = make_4choice_layout(
-        "images/select.png", ["プレイ", "", "", ""])
+        "images/select.png", ["遊び方", "プレイ", "", ""])
     layoutEnding = make_fullimage_layout("images/ending.png", "ENDING")
     layoutCard_Error = make_fullimage_layout(
         "images/card_alert.png", "CARD_ERROR")
@@ -91,7 +91,9 @@ def select_game_ModeProc(dictArgument):
     cCtrlCard = dictArgument["CtrlCard"]
     cAudioOut = dictArgument["AudioOut"]
 
-    if event == "プレイ":
+    if event == "遊び方":
+        dictArgument["Start time"] = cState.updateState("TUTORIAL_1")
+    elif event == "プレイ":
         dictArgument["Start time"] = cState.updateState("POSE_Q")
 
 
