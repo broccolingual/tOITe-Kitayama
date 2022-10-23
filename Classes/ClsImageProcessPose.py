@@ -3,6 +3,7 @@ import math
 import mediapipe as mp
 
 from Classes.ClsImageProcess import ClsImageProcess
+from functions.common import PlaySound
 
 
 class ClsImageProcessPose(ClsImageProcess):
@@ -10,6 +11,7 @@ class ClsImageProcessPose(ClsImageProcess):
         self.isROIdefined = False
         self.ratioROI = 1
         self.end = False
+        self.frameCnt = 0
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(
@@ -38,18 +40,26 @@ class ClsImageProcessPose(ClsImageProcess):
         # self.window.setEnableOverlay(True, 0, 0)
         # self.window.setOverlayImage(self.imOverlayOrig_correct, self.imOverlayMask_inst)
 
-        imEnemy = cv2.imread(
-            './images/enemy.png', -1)
-        self.imEnemyMask = imEnemy[:, :, 3]
-        self.imEnemyMask = cv2.cvtColor(
-            self.imEnemyMask, cv2.COLOR_GRAY2BGR)
-        self.imEnemyMask = self.imEnemyMask / 255
-        self.imEnemy = imEnemy[:, :, :3]
-        mH, mW = self.imEnemyMask.shape[0], self.imEnemyMask.shape[1]
+        self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
+        self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
+        self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
+
+    def loadOverlayImage(self, path):
+        return cv2.imread(path, -1)
+
+    def makeOverlayMask(self, imOverlay):
+        imOverlayMask = imOverlay[:, :, 3]
+        imOverlayMask = cv2.cvtColor(
+            imOverlayMask, cv2.COLOR_GRAY2BGR)
+        return imOverlayMask / 255
+
+    def setOverlayCenter(self, imOverlay, imOverlayMask, width=1024, height=600):
+        imOverlay = imOverlay[:, :, :3]
+        h, w = imOverlayMask.shape[0], imOverlayMask.shape[1]
         self.window.setEnableOverlay(
-            True, int(1024 / 2 - mW / 2), int(600 / 2 - mH / 2))
+            True, int(width / 2 - w / 2), int(height / 2 - h / 2))
         self.window.setOverlayImage(
-            self.imEnemy, self.imEnemyMask)
+            imOverlay, imOverlayMask)
 
     def setRatioROI(self, ratioROI):
         self.ratioROI = ratioROI
@@ -165,11 +175,7 @@ class ClsImageProcessPose(ClsImageProcess):
         return False
 
     def process(self):
-        debug = True
-
-        # overlay test
-        self.window.setOverlayImage(
-            self.imEnemy, self.imEnemyMask)
+        debug = False
 
         # set ROI
         if self.isROIdefined is False:
@@ -226,8 +232,14 @@ class ClsImageProcessPose(ClsImageProcess):
                 currentPose[5] = True
 
             # test
-            if self.judgePose(5):
-                self.end = True
+            if self.frameCnt % 10 == 0 and (self.judgePose(2) or self.judgePose(3)):
+                PlaySound("./sound/punch.wav")
+                imHSV = cv2.cvtColor(self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
+                dHue = 10
+                imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
+                self.imOverlayEnemy = cv2.cvtColor(imHSV, cv2.COLOR_HSV2BGR)
+                self.setOverlayCenter(
+                    self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
             # add pose
             self.pastPoses.insert(0, currentPose)
@@ -243,6 +255,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
         # 正解の時はreturn Trueする
         self.imProcessed = self.imSensor
+        self.frameCnt += 1
 
         return 0
 
