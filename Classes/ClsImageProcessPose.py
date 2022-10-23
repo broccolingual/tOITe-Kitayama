@@ -9,7 +9,7 @@ from functions.common import PlaySound
 class ClsImageProcessPose(ClsImageProcess):
     def initProcess(self):
         self.isROIdefined = False
-        self.ratioROI = 1
+        self.ratioROI = 0.6
         self.end = False
         self.frameCnt = 0
         self.mp_drawing = mp.solutions.drawing_utils
@@ -17,9 +17,12 @@ class ClsImageProcessPose(ClsImageProcess):
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
-        self.pastFrameNum = 30
+        self.pastFrameNum = 10
         self.pastLandmarks = [] * self.pastFrameNum
         self.pastPoses = [] * self.pastFrameNum
+        self.previousPoseID = None
+
+        self.enemyHP = 100
 
         # imOverlayOrig_inst = cv2.imread('./images/sign_inst2.png', -1)
         # self.imOverlayMask_inst = imOverlayOrig_inst[:, :, 3]
@@ -168,7 +171,7 @@ class ClsImageProcessPose(ClsImageProcess):
             return True
         return False
 
-    def judgePose(self, pose_id, past_frame=10):
+    def judgePose(self, pose_id, past_frame=5):
         for poses in self.pastPoses[:past_frame]:
             if poses[pose_id] is True:
                 return True
@@ -232,14 +235,40 @@ class ClsImageProcessPose(ClsImageProcess):
                 currentPose[5] = True
 
             # test
-            if self.frameCnt % 10 == 0 and (self.judgePose(2) or self.judgePose(3)):
-                PlaySound("./sound/punch.wav")
-                imHSV = cv2.cvtColor(self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
-                dHue = 10
-                imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
-                self.imOverlayEnemy = cv2.cvtColor(imHSV, cv2.COLOR_HSV2BGR)
-                self.setOverlayCenter(
-                    self.imOverlayEnemy, self.imOverlayMaskEnemy)
+            cv2.putText(self.imSensor, str(self.enemyHP), (10, 40),
+                        cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
+
+            if self.frameCnt % 5 == 0:
+                if self.judgePose(2) and self.previousPoseID != 2:
+                    self.enemyHP -= 2
+                    PlaySound("./sound/punch.wav")
+                    self.previousPoseID = 2
+                    imHSV = cv2.cvtColor(
+                        self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
+                    dHue = 5
+                    imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
+                    self.imOverlayEnemy = cv2.cvtColor(
+                        imHSV, cv2.COLOR_HSV2BGR)
+                    self.setOverlayCenter(
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy)
+                elif self.judgePose(3) and self.previousPoseID != 3:
+                    self.enemyHP -= 2
+                    PlaySound("./sound/punch.wav")
+                    self.previousPoseID = 3
+                    imHSV = cv2.cvtColor(
+                        self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
+                    dHue = 5
+                    imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
+                    self.imOverlayEnemy = cv2.cvtColor(
+                        imHSV, cv2.COLOR_HSV2BGR)
+                    self.setOverlayCenter(
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy)
+                elif self.judgePose(4) and self.previousPoseID != 4:  # guard
+                    PlaySound("./sound/guard.wav")
+                    self.previousPoseID = 4
+                elif self.judgePose(5) and self.previousPoseID != 5:  # heal
+                    PlaySound("./sound/heal.wav")
+                    self.previousPoseID = 5
 
             # add pose
             self.pastPoses.insert(0, currentPose)
@@ -248,9 +277,14 @@ class ClsImageProcessPose(ClsImageProcess):
             if len(self.pastPoses) >= self.pastFrameNum:
                 del self.pastPoses[-1]
 
+            if self.enemyHP <= 0:
+                self.end = True
+
             # end
             if self.end is True:
                 self.end = False
+                self.enemyHP = 100
+                self.frameCnt = 0
                 return True
 
         # 正解の時はreturn Trueする

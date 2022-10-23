@@ -37,7 +37,7 @@ def setEnvironment():
     sMonitorWidth = 1024
     sMonitorHeight = 600
     tplWindowName = ("full",)
-    sFlipMode = 2
+    sFlipMode = 1
 
     cImageProc = ClsImageProcessPose(
         strPlatform,
