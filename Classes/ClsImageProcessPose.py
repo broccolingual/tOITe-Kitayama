@@ -15,8 +15,9 @@ class ClsImageProcessPose(ClsImageProcess):
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
-        self.pastFrameNum = 60
+        self.pastFrameNum = 30
         self.pastLandmarks = [] * self.pastFrameNum
+        self.pastPoses = [] * self.pastFrameNum
 
         # imOverlayOrig_inst = cv2.imread('./images/sign_inst2.png', -1)
         # self.imOverlayMask_inst = imOverlayOrig_inst[:, :, 3]
@@ -36,6 +37,19 @@ class ClsImageProcessPose(ClsImageProcess):
         # self.imOverlayOrig_correct = imOverlayOrig_correct[:, :, :3]
         # self.window.setEnableOverlay(True, 0, 0)
         # self.window.setOverlayImage(self.imOverlayOrig_correct, self.imOverlayMask_inst)
+
+        imEnemy = cv2.imread(
+            './images/enemy.png', -1)
+        self.imEnemyMask = imEnemy[:, :, 3]
+        self.imEnemyMask = cv2.cvtColor(
+            self.imEnemyMask, cv2.COLOR_GRAY2BGR)
+        self.imEnemyMask = self.imEnemyMask / 255
+        self.imEnemy = imEnemy[:, :, :3]
+        mH, mW = self.imEnemyMask.shape[0], self.imEnemyMask.shape[1]
+        self.window.setEnableOverlay(
+            True, int(1024 / 2 - mW / 2), int(600 / 2 - mH / 2))
+        self.window.setOverlayImage(
+            self.imEnemy, self.imEnemyMask)
 
     def setRatioROI(self, ratioROI):
         self.ratioROI = ratioROI
@@ -100,11 +114,6 @@ class ClsImageProcessPose(ClsImageProcess):
             (left_hip[0] + right_hip[0]) / 2,
             (left_hip[1] + right_hip[1]) / 2)
 
-        # for debug
-        # self.drawCircle(left_wrist[0], left_wrist[1], body_height/3)
-        # self.drawCircle(
-        #     right_wrist[0], right_wrist[1], body_height/3)
-
         if (LR == "left" and
                 (left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
             return True
@@ -149,7 +158,20 @@ class ClsImageProcessPose(ClsImageProcess):
             return True
         return False
 
+    def judgePose(self, pose_id, past_frame=10):
+        for poses in self.pastPoses[:past_frame]:
+            if poses[pose_id] is True:
+                return True
+        return False
+
     def process(self):
+        debug = True
+
+        # overlay test
+        self.window.setOverlayImage(
+            self.imEnemy, self.imEnemyMask)
+
+        # set ROI
         if self.isROIdefined is False:
             self.defineROI(self.imSensor)
         imROI = self.imSensor[:, self.leftPosROI:self.rightPosROI]
@@ -162,44 +184,57 @@ class ClsImageProcessPose(ClsImageProcess):
         imROI = cv2.cvtColor(imROI, cv2.COLOR_RGB2BGR)
 
         if results.pose_landmarks:
+            currentPose = [False, False, False, False, False, False]
             # x座標に切り抜いた左側の位置を足し合わす
             vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
                         int(landmark.y*imROI.shape[0]))
                        for landmark in results.pose_landmarks.landmark]
 
-            # add past frame
+            # add landmarks
             self.pastLandmarks.insert(0, vPoints)
 
-            # delete past frame
+            # delete past landmarks
             if len(self.pastLandmarks) >= self.pastFrameNum:
                 del self.pastLandmarks[-1]
 
             # draw landmarks
-            self.mp_drawing.draw_landmarks(
-                self.imSensor, results.pose_landmarks,
-                self.mp_pose.POSE_CONNECTIONS,
-                connection_drawing_spec=self.mp_drawing.DrawingSpec(
-                    thickness=2, circle_radius=10))
+            if debug:
+                self.mp_drawing.draw_landmarks(
+                    self.imSensor, results.pose_landmarks,
+                    self.mp_pose.POSE_CONNECTIONS,
+                    connection_drawing_spec=self.mp_drawing.DrawingSpec(
+                        thickness=2, circle_radius=10))
 
             # judge shoulder degree
-            if self.judgeBodyDegree(vPoints, "left"):
-                self.putText("body left", 20, 40)
-            elif self.judgeBodyDegree(vPoints, "right"):
-                self.putText("body right", 20, 60)
+            if self.judgeBodyDegree(vPoints, "left"):  # id: 0
+                currentPose[0] = True
+            if self.judgeBodyDegree(vPoints, "right"):  # id: 1
+                currentPose[1] = True
 
             # judge punch
-            if self.judgePunch(vPoints, "left"):
-                self.putText("punch left", 20, 80)
-            elif self.judgePunch(vPoints, "right"):
-                self.putText("punch right", 20, 100)
+            if self.judgePunch(vPoints, "left"):  # id: 2
+                currentPose[2] = True
+            if self.judgePunch(vPoints, "right"):  # id: 3
+                currentPose[3] = True
 
             # judge guard
-            if self.judgeGuard(vPoints):
-                self.putText("guard", 20, 120)
+            if self.judgeGuard(vPoints):  # id: 4
+                currentPose[4] = True
 
             # judge heal
-            if self.judgeHeal(vPoints):
-                self.putText("heal", 20, 140)
+            if self.judgeHeal(vPoints):  # id: 5
+                currentPose[5] = True
+
+            # test
+            if self.judgePose(5):
+                self.end = True
+
+            # add pose
+            self.pastPoses.insert(0, currentPose)
+
+            # delete past pose
+            if len(self.pastPoses) >= self.pastFrameNum:
+                del self.pastPoses[-1]
 
             # end
             if self.end is True:
