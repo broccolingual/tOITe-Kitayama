@@ -5,6 +5,8 @@ import numpy as np
 import mediapipe as mp
 
 from Classes.ClsImageProcess import ClsImageProcess
+from Classes.ClsAudioOut import ClsAudioOut
+from Classes.ClsLogger import ClsLogger
 from functions.common import PlaySound
 
 
@@ -18,6 +20,10 @@ class ClsImageProcessPose(ClsImageProcess):
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
+
+        # set audio out
+        self.cLogger = ClsLogger()
+        self.cAudioOut = ClsAudioOut(self.cLogger)
 
         # store past data
         self.pastFrameNum = 30
@@ -80,11 +86,16 @@ class ClsImageProcessPose(ClsImageProcess):
             (x, y), cv2.FONT_ITALIC, 0.5, (0, 0, 255), 1)
 
     def calcDegree(self, x1: int, y1: int, x2: int, y2: int) -> float:
-        radian = math.atan2(y2-y1, x2-x1)
-        return radian * 180 / math.pi
+        a = np.array([x1, y1])
+        b = np.array([x2, y2])
+        vec = b - a
+        radian = np.arctan2(vec[0], vec[1])
+        return np.rad2deg(radian)
 
     def calcDistance(self, x1: int, y1: int, x2: int, y2: int) -> float:
-        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+        a = np.array([x1, y1])
+        b = np.array([x2, y2])
+        return np.linalg.norm(a-b)
 
     def judgeBodyDegree(self, vPoints: list, LR: str) -> bool:
         """
@@ -97,9 +108,9 @@ class ClsImageProcessPose(ClsImageProcess):
         # judge logic
         shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
                                        left_shoulder[0], left_shoulder[1])
-        if LR == "left" and shoulder_deg > 15:
+        if LR == "left" and shoulder_deg < 75:
             return True
-        elif LR == "right" and shoulder_deg < -15:
+        elif LR == "right" and shoulder_deg > 105:
             return True
         return False
 
@@ -368,12 +379,12 @@ class ClsImageProcessPose(ClsImageProcess):
             # upper punch (R)
             elif self.judgePose(2) and self.previousPoseID != 2:
                 self.previousPoseID = 2
-                self.enemyHP -= 2
+                self.enemyHP -= 3
                 self.phaseCnt += 1
             # upper punch (L)
             elif self.judgePose(3) and self.previousPoseID != 3:
                 self.previousPoseID = 3
-                self.enemyHP -= 2
+                self.enemyHP -= 3
                 self.phaseCnt += 1
             # heal (hidden)
             elif self.judgePose(4) and self.previousPoseID != 4:
@@ -388,7 +399,7 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.imOverlayEnemyRage, self.imOverlayMaskEnemy, dy=0)
 
         # Guard phase
-        if not self.attackPhase and self.frameCnt % 60 == 0:
+        if not self.attackPhase and self.frameCnt % 30 == 0:
             if self.judgePose(5) and self.previousPoseID != 5:  # right
                 self.previousPoseID = 5
                 self.phaseCnt += 1
@@ -440,6 +451,13 @@ class ClsImageProcessPose(ClsImageProcess):
             elif self.previousPoseID == 8:
                 poseName = "A (UN)"
             cv2.putText(self.imSensor, poseName, (320 - 60, 50),
+                        cv2.FONT_ITALIC, 0.5, (0, 0, 255), 1)
+
+            left_shoulder = vPoints[11]
+            right_shoulder = vPoints[12]
+            shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
+                                           left_shoulder[0], left_shoulder[1])
+            cv2.putText(self.imSensor, str(round(shoulder_deg, 1)), (320 - 60, 70),
                         cv2.FONT_ITALIC, 0.5, (0, 0, 255), 1)
 
         # add pose
