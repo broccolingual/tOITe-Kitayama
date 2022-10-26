@@ -3,7 +3,6 @@ import os
 import subprocess
 
 
-# アンケート結果をCSVファイルに保存
 def getDictFlag():
     dictFlag = {
         "tutorial": "チュートリアル",

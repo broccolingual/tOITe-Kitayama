@@ -17,32 +17,17 @@ class ClsImageProcessPose(ClsImageProcess):
         self.pose = self.mp_pose.Pose(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
-        self.pastFrameNum = 10
+
+        # store past data
+        self.pastFrameNum = 30
         self.pastLandmarks = [] * self.pastFrameNum
         self.pastPoses = [] * self.pastFrameNum
         self.previousPoseID = None
 
+        # store enemy/player data
         self.enemyHP = 100
 
-        # imOverlayOrig_inst = cv2.imread('./images/sign_inst2.png', -1)
-        # self.imOverlayMask_inst = imOverlayOrig_inst[:, :, 3]
-        # self.imOverlayMask_inst = cv2.cvtColor(
-        #     self.imOverlayMask_inst, cv2.COLOR_GRAY2BGR)
-        # self.imOverlayMask_inst = self.imOverlayMask_inst / 255
-        # self.imOverlayOrig_inst = imOverlayOrig_inst[:, :, :3]
-        # self.window.setEnableOverlay(True, 300, 0)
-        # self.window.setOverlayImage(self.imOverlayOrig_inst, self.imOverlayMask_inst)
-
-        # imOverlayOrig_correct = cv2.imread(
-        #     './images/sign_correct_cyan.png', -1)
-        # self.imOverlayMask_correct = imOverlayOrig_correct[:, :, 3]
-        # self.imOverlayMask_correct = cv2.cvtColor(
-        #     self.imOverlayMask_correct, cv2.COLOR_GRAY2BGR)
-        # self.imOverlayMask_correct = self.imOverlayMask_correct / 255
-        # self.imOverlayOrig_correct = imOverlayOrig_correct[:, :, :3]
-        # self.window.setEnableOverlay(True, 0, 0)
-        # self.window.setOverlayImage(self.imOverlayOrig_correct, self.imOverlayMask_inst)
-
+        # set overlay
         self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
@@ -177,6 +162,29 @@ class ClsImageProcessPose(ClsImageProcess):
                 return True
         return False
 
+    def changeHue(self, imOrig, hue):
+        """
+        imOrig: 変換対象の画像
+        hue: 色相の値(0~359)
+         - 赤: 90, 黄緑: 180, 水色: 270
+        """
+        imHSV = cv2.cvtColor(
+            imOrig, cv2.COLOR_BGR2HSV)
+        imHSV[:, :, (0)] = hue
+        return cv2.cvtColor(
+            imHSV, cv2.COLOR_HSV2BGR)
+
+    def incrementHue(self, imOrig, dHue):
+        """
+        imOrig: 変換対象の画像
+        dhue: 加算する色相の値(0~359)
+        """
+        imHSV = cv2.cvtColor(
+            imOrig, cv2.COLOR_BGR2HSV)
+        imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
+        return cv2.cvtColor(
+            imHSV, cv2.COLOR_HSV2BGR)
+
     def process(self):
         debug = False
 
@@ -243,24 +251,16 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.enemyHP -= 2
                     PlaySound("./sound/punch.wav")
                     self.previousPoseID = 2
-                    imHSV = cv2.cvtColor(
-                        self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
-                    dHue = 5
-                    imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
-                    self.imOverlayEnemy = cv2.cvtColor(
-                        imHSV, cv2.COLOR_HSV2BGR)
+                    self.imOverlayEnemy = self.incrementHue(
+                        self.imOverlayEnemy, 5)
                     self.setOverlayCenter(
                         self.imOverlayEnemy, self.imOverlayMaskEnemy)
                 elif self.judgePose(3) and self.previousPoseID != 3:
                     self.enemyHP -= 2
                     PlaySound("./sound/punch.wav")
                     self.previousPoseID = 3
-                    imHSV = cv2.cvtColor(
-                        self.imOverlayEnemy, cv2.COLOR_BGR2HSV)
-                    dHue = 5
-                    imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
-                    self.imOverlayEnemy = cv2.cvtColor(
-                        imHSV, cv2.COLOR_HSV2BGR)
+                    self.imOverlayEnemy = self.incrementHue(
+                        self.imOverlayEnemy, 5)
                     self.setOverlayCenter(
                         self.imOverlayEnemy, self.imOverlayMaskEnemy)
                 elif self.judgePose(4) and self.previousPoseID != 4:  # guard
@@ -295,7 +295,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
 
 if __name__ == '__main__':
-    CProc = Cleft_shoulderImageProcessPose
+    CProc = ClsImageProcessPose
     import os
 
     if os.name == 'nt':
