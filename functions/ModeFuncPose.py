@@ -18,9 +18,9 @@ def updateDictProc_Pose(dictProc):
 def updateDictWindow_Pose(dictWindow):
     layoutPose_Q = make_fullimage_layout("images/tutorial1.png", "POSE_Q")
     layoutPose_Correct = make_fullimage_layout(
-        "images/tutorial2.png", "POSE_CORRECT")
+        "images/clear.png", "POSE_CORRECT")
     layoutPose_Wrong = make_fullimage_layout(
-        "images/tutorial2.png", "POSE_WRONG")
+        "images/gameover.png", "POSE_WRONG")
 
     dictLayout = {
         "POSE_Q": layoutPose_Q,
