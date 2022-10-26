@@ -202,19 +202,20 @@ class ClsImageProcessPose(ClsImageProcess):
 
         if results.pose_landmarks:
             currentPose = [False, False, False, False, False, False]
-            # x座標に切り抜いた左側の位置を足し合わす
+            # calc coord (ROI + landmarks)
+            # vPoint[n][0]: x, vPoint[n][1]: y, vPoint[n][2]: visibility
             vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
                         int(landmark.y*imROI.shape[0]), landmark.visibility)
                        for landmark in results.pose_landmarks.landmark]
 
-            # add landmarks
+            # add landmarks to past landmarks records
             self.pastLandmarks.insert(0, vPoints)
 
             # delete past landmarks
             if len(self.pastLandmarks) >= self.pastFrameNum:
                 del self.pastLandmarks[-1]
 
-            # draw landmarks
+            # draw landmarks (debug is true only)
             if debug:
                 self.mp_drawing.draw_landmarks(
                     self.imSensor, results.pose_landmarks,
@@ -242,7 +243,7 @@ class ClsImageProcessPose(ClsImageProcess):
             if self.judgeHeal(vPoints):  # id: 5
                 currentPose[5] = True
 
-            # test
+            # draw enemy hp
             cv2.putText(self.imSensor, str(self.enemyHP), (10, 40),
                         cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
 
@@ -277,17 +278,17 @@ class ClsImageProcessPose(ClsImageProcess):
             if len(self.pastPoses) >= self.pastFrameNum:
                 del self.pastPoses[-1]
 
+            # brake img process loop
             if self.enemyHP <= 0:
                 self.end = True
 
-            # end
+            # end/initialize process
             if self.end is True:
                 self.end = False
                 self.enemyHP = 100
                 self.frameCnt = 0
                 return True
 
-        # 正解の時はreturn Trueする
         self.imProcessed = self.imSensor
         self.frameCnt += 1
 
