@@ -395,6 +395,7 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.phaseCnt += 1
             # heal (hidden)
             elif self.judgePose(4) and self.previousPoseID != 4:
+                self.cAudioOut.playSoundAsync("sound/heal.wav")
                 self.previousPoseID = 4
                 self.playerHP += 1
 
@@ -421,24 +422,24 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.defenceCheckPhase = True
             else:
                 if self.judgePose(5, past_frame=15) and currentDefencePose == 5:  # right
-                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.cAudioOut.playSoundAsync("sound/ok.wav")
                     self.previousPoseID = 5
                 elif self.judgePose(6, past_frame=15) and currentDefencePose == 6:  # left
-                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.cAudioOut.playSoundAsync("sound/ok.wav")
                     self.previousPoseID = 6
                 elif self.judgePose(7, past_frame=15) and currentDefencePose == 7:  # guard
-                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.cAudioOut.playSoundAsync("sound/ok.wav")
                     self.previousPoseID = 7
                 elif self.judgePose(8, past_frame=15) and currentDefencePose == 8:  # avoid under
-                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.cAudioOut.playSoundAsync("sound/ok.wav")
                     self.previousPoseID = 8
                 else:
-                    self.cAudioOut.playSoundAsync("sound/wrong_24.wav")
+                    self.cAudioOut.playSoundAsync("sound/ng.wav")
                     self.playerHP -= 1
                 self.phaseCnt += 1
                 self.defenceCheckPhase = False
 
-            # exit attach phase process
+            # exit guard phase process
             if self.phaseCnt == self.defensePhaseMax:
                 self.cAudioOut.playSoundAsync("sound/do_attack.wav")
                 self.phaseCnt = 0
