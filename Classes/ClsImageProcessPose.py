@@ -143,18 +143,23 @@ class ClsImageProcessPose(ClsImageProcess):
 
         # judge logic
         try:
-            r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
-                     (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt(
-                         (right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt(
-                         (right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
-            l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
-                     (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt(
-                         (left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt(
-                         (left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+            ra = np.array([right_wrist[0] - right_elbow[0],
+                          right_wrist[1] - right_elbow[1]])
+            rb = np.array([right_shoulder[0] - right_elbow[0],
+                          right_shoulder[1] - right_elbow[1]])
+            right_cos = np.inner(ra, rb) / \
+                (np.linalg.norm(ra) * np.linalg.norm(rb))
+
+            la = np.array([left_wrist[0] - left_elbow[0],
+                          left_wrist[1] - left_elbow[1]])
+            lb = np.array([left_shoulder[0] - left_elbow[0],
+                          left_shoulder[1] - left_elbow[1]])
+            left_cos = np.inner(la, lb) / \
+                (np.linalg.norm(la) * np.linalg.norm(lb))
         except ZeroDivisionError:
             return False
 
-        if (0.9 > r_cos > 0.2) & (0.9 > l_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
+        if (0.9 > right_cos > 0.2) & (0.9 > left_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
             return True
         return False
 
@@ -187,16 +192,28 @@ class ClsImageProcessPose(ClsImageProcess):
         right_thumb = vPoints[22]
 
         # judge logic
-        r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
-                 (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
-        l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
-                 (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+        try:
+            ra = np.array([right_wrist[0] - right_elbow[0],
+                           right_wrist[1] - right_elbow[1]])
+            rb = np.array([right_shoulder[0] - right_elbow[0],
+                           right_shoulder[1] - right_elbow[1]])
+            right_cos = np.inner(ra, rb) / (np.linalg.norm(ra)
+                                            * np.linalg.norm(rb))
+
+            la = np.array([left_wrist[0] - left_elbow[0],
+                           left_wrist[1] - left_elbow[1]])
+            lb = np.array([left_shoulder[0] - left_elbow[0],
+                           left_shoulder[1] - left_elbow[1]])
+            left_cos = np.inner(la, lb) / \
+                (np.linalg.norm(la) * np.linalg.norm(lb))
+        except ZeroDivisionError:
+            return False
 
         if (LR == "left"
-                and ((left_thumb[1] < nose[1]) and (-0.86 < l_cos < 0.86))):
+                and ((left_thumb[1] < nose[1]) & (-0.86 < left_cos < 0.86))):
             return True
         elif (LR == "right"
-              and ((right_thumb[1] < nose[1]) and (-0.86 < r_cos < 0.86))):
+              and ((right_thumb[1] < nose[1]) & (-0.86 < right_cos < 0.86))):
             return True
         return False
 
@@ -208,8 +225,8 @@ class ClsImageProcessPose(ClsImageProcess):
         left_knee = vPoints[25]
         right_knee = vPoints[26]
         body_height = self.calcDistance(
-            (left_shoulder[0] + right_shoulder[0]) /
-            2, (left_shoulder[1] + right_shoulder[1]) / 2,
+            (left_shoulder[0] + right_shoulder[0]) / 2,
+            (left_shoulder[1] + right_shoulder[1]) / 2,
             (left_hip[0] + right_hip[0]) / 2,
             (left_hip[1] + right_hip[1]) / 2)
         if (((left_knee[0] - left_hip[0]) ** 2 + (left_knee[1] - left_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)
@@ -448,6 +465,7 @@ class ClsImageProcessPose(ClsImageProcess):
             self.frameCnt = 0
             return True
 
+        # gameover/initialize process
         if self.gameover is True:
             self.gameover = False
             self.enemyHP = 100
