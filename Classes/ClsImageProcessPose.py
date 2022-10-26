@@ -47,7 +47,7 @@ class ClsImageProcessPose(ClsImageProcess):
         self.initDefencePattern()
 
         # set overlay
-        self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
+        self.imOverlayEnemy = self.loadOverlayImage("./images/bg_conv.png")
         self.imOverlayEnemyRage = self.changeHue(self.imOverlayEnemy, 180)
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
@@ -400,6 +400,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
             # exit attach phase process
             if self.phaseCnt == self.attackPhaseMax:
+                self.cAudioOut.playSoundAsync("sound/do_defence.wav")
                 self.phaseCnt = 0
                 self.attackPhase = False
                 self.setOverlayCenter(
@@ -439,6 +440,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
             # exit attach phase process
             if self.phaseCnt == self.defensePhaseMax:
+                self.cAudioOut.playSoundAsync("sound/do_attack.wav")
                 self.phaseCnt = 0
                 self.attackPhase = True
                 self.initDefencePattern()
