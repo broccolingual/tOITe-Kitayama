@@ -27,9 +27,12 @@ class ClsImageProcessPose(ClsImageProcess):
         # store enemy/player data
         self.enemyHP = 100
         self.playerHP = 3
+        self.attackPhase = True
+        self.phaseCnt = 0
 
         # set overlay
-        self.imOverlayEnemy = self.loadOverlayImage("./images/bg_conv.png")
+        self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
+        self.imOverlayEnemyRage = self.changeHue(self.imOverlayEnemy, 180)
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
@@ -131,11 +134,17 @@ class ClsImageProcessPose(ClsImageProcess):
         right_wrist = vPoints[16]
 
         # judge logic
-        # TODO: ZeroDivision Errorの修正
-        r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
-                 (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
-        l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
-                 (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+        try:
+            r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
+                     (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt(
+                         (right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt(
+                         (right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
+            l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
+                     (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt(
+                         (left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt(
+                         (left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+        except ZeroDivisionError:
+            return False
 
         if (0.9 > r_cos > 0.2) & (0.9 > l_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
             return True
@@ -230,7 +239,7 @@ class ClsImageProcessPose(ClsImageProcess):
             imHSV, cv2.COLOR_HSV2BGR)
 
     def process(self):
-        debug = False
+        debug = True
 
         # set ROI
         if self.isROIdefined is False:
@@ -244,131 +253,179 @@ class ClsImageProcessPose(ClsImageProcess):
         imROI.flags.writeable = True
         imROI = cv2.cvtColor(imROI, cv2.COLOR_RGB2BGR)
 
-        if results.pose_landmarks:
-            currentPose = [False, False, False,
-                           False, False, False, False, False, False]
-            # calc coord (ROI + landmarks)
-            # vPoint[n][0]: x, vPoint[n][1]: y, vPoint[n][2]: visibility
-            vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
-                        int(landmark.y*imROI.shape[0]), landmark.visibility)
-                       for landmark in results.pose_landmarks.landmark]
+        if not results.pose_landmarks:
+            self.imProcessed = self.imSensor
+            self.frameCnt += 1
+            return 0
 
-            # add landmarks to past landmarks records
-            self.pastLandmarks.insert(0, vPoints)
+        # initialize currentPose array
+        currentPose = [False, False, False,
+                       False, False, False, False, False, False]
 
-            # delete past landmarks
-            if len(self.pastLandmarks) >= self.pastFrameNum:
-                del self.pastLandmarks[-1]
+        # calc coord (ROI + landmarks)
+        # vPoint[n][0]: x, vPoint[n][1]: y, vPoint[n][2]: visibility
+        vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
+                    int(landmark.y*imROI.shape[0]), landmark.visibility)
+                   for landmark in results.pose_landmarks.landmark]
 
-            # draw landmarks (debug is true only)
-            if debug:
-                self.mp_drawing.draw_landmarks(
-                    self.imSensor, results.pose_landmarks,
-                    self.mp_pose.POSE_CONNECTIONS,
-                    connection_drawing_spec=self.mp_drawing.DrawingSpec(
-                        thickness=2, circle_radius=10))
+        # add landmarks to past landmarks records
+        self.pastLandmarks.insert(0, vPoints)
 
-            # judge shoulder degree
-            if self.judgeBodyDegree(vPoints, "left"):  # id: 0
+        # delete past landmarks
+        if len(self.pastLandmarks) >= self.pastFrameNum:
+            del self.pastLandmarks[-1]
+
+        # draw landmarks (debug is true only)
+        # if debug:
+        #     self.mp_drawing.draw_landmarks(
+        #         self.imSensor, results.pose_landmarks,
+        #         self.mp_pose.POSE_CONNECTIONS,
+        #         connection_drawing_spec=self.mp_drawing.DrawingSpec(
+        #             thickness=2, circle_radius=10))
+
+        if self.attackPhase:
+            # judge punch
+            if self.judgePunch(vPoints, "left"):  # id: 0
                 currentPose[0] = True
-            if self.judgeBodyDegree(vPoints, "right"):  # id: 1
+            if self.judgePunch(vPoints, "right"):  # id: 1
                 currentPose[1] = True
 
-            # judge punch
-            if self.judgePunch(vPoints, "left"):  # id: 2
+            # judge upper punch
+            if self.judgeUpperPunch(vPoints, "left"):  # id: 2
                 currentPose[2] = True
-            if self.judgePunch(vPoints, "right"):  # id: 3
+            if self.judgeUpperPunch(vPoints, "right"):  # id: 3
                 currentPose[3] = True
 
-            # judge guard
-            if self.judgeGuard(vPoints):  # id: 4
+            # judge heal
+            if self.judgeHeal(vPoints):  # id: 4
                 currentPose[4] = True
 
-            # judge heal
-            if self.judgeHeal(vPoints):  # id: 5
+            if debug:
+                cv2.putText(self.imSensor, "Attack Phase", (10, 60),
+                            cv2.FONT_ITALIC, 0.5, (255, 0, 0), 1)
+        else:
+            # judge shoulder degree
+            if self.judgeBodyDegree(vPoints, "left"):  # id: 5
                 currentPose[5] = True
-
-            # judge avoid under
-            if self.judgeAvoidUnder(vPoints):  # id: 6
+            if self.judgeBodyDegree(vPoints, "right"):  # id: 6
                 currentPose[6] = True
 
-            # judge upper punch
-            if self.judgeUpperPunch(vPoints, "left"):  # id: 7
+            # judge guard
+            if self.judgeGuard(vPoints):  # id: 7
                 currentPose[7] = True
-            if self.judgeUpperPunch(vPoints, "right"):  # id: 8
+
+            # judge avoid under
+            if self.judgeAvoidUnder(vPoints):  # id: 8
                 currentPose[8] = True
 
-            # draw enemy hp
-            cv2.putText(self.imSensor, str(self.enemyHP), (10, 40),
-                        cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
+            if debug:
+                cv2.putText(self.imSensor, "Defence Phase", (10, 60),
+                            cv2.FONT_ITALIC, 0.5, (255, 0, 0), 1)
 
-            if self.frameCnt % 5 == 0:
-                if self.judgePose(2) and self.previousPoseID != 2:
-                    self.enemyHP -= 2
-                    self.previousPoseID = 2
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 90)
-                    self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
-                elif self.judgePose(3) and self.previousPoseID != 3:
-                    self.enemyHP -= 2
-                    self.previousPoseID = 3
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 90)
-                    self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
-                elif self.judgePose(4) and self.previousPoseID != 4:  # guard
-                    PlaySound("./sound/guard.wav")
-                    self.previousPoseID = 4
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 90)
-                elif self.judgePose(5) and self.previousPoseID != 5:  # heal
-                    PlaySound("./sound/heal.wav")
-                    self.previousPoseID = 5
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 90)
-                elif self.judgePose(6) and self.previousPoseID != 6:  # avoid under
-                    self.previousPoseID = 6
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 90)
-                elif self.judgePose(7) and self.previousPoseID != 7:  # upper punch (L)
-                    self.enemyHP -= 4
-                    self.previousPoseID = 7
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 150)
-                    self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
-                elif self.judgePose(8) and self.previousPoseID != 8:  # upper punch (R)
-                    self.enemyHP -= 4
-                    self.previousPoseID = 8
-                    self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 150)
-                    self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
+        # Attach phase
+        if self.attackPhase and self.frameCnt % 5 == 0:
+            # punch (R)
+            if self.judgePose(0) and self.previousPoseID not in (0, 2):
+                self.previousPoseID = 0
+                self.enemyHP -= 2
+                self.phaseCnt += 1
+            # punch (L)
+            elif self.judgePose(1) and self.previousPoseID not in (1, 3):
+                self.previousPoseID = 1
+                self.enemyHP -= 2
+                self.phaseCnt += 1
+            # upper punch (R)
+            elif self.judgePose(2) and self.previousPoseID != 2:
+                self.previousPoseID = 2
+                self.enemyHP -= 2
+                self.phaseCnt += 1
+            # upper punch (L)
+            elif self.judgePose(3) and self.previousPoseID != 3:
+                self.previousPoseID = 3
+                self.enemyHP -= 2
+                self.phaseCnt += 1
+            # heal (hidden)
+            elif self.judgePose(4) and self.previousPoseID != 4:
+                self.previousPoseID = 4
+                self.playerHP += 1
 
-            else:
-                self.imOverlayEnemy = self.changeHue(
-                    self.imOverlayEnemy, 90)
+            # exit attach phase process
+            if self.phaseCnt >= 10:
+                self.phaseCnt = 0
+                self.attackPhase = False
                 self.setOverlayCenter(
-                    self.imOverlayEnemy, self.imOverlayMaskEnemy)
+                    self.imOverlayEnemyRage, self.imOverlayMaskEnemy, dy=0)
 
-            # add pose
-            self.pastPoses.insert(0, currentPose)
+        # Guard phase
+        if not self.attackPhase and self.frameCnt % 60 == 0:
+            if self.judgePose(5) and self.previousPoseID != 5:  # right
+                self.previousPoseID = 5
+                self.phaseCnt += 1
+            elif self.judgePose(6) and self.previousPoseID != 6:  # left
+                self.previousPoseID = 6
+                self.phaseCnt += 1
+            elif self.judgePose(7) and self.previousPoseID != 7:  # guard
+                self.previousPoseID = 7
+                self.phaseCnt += 1
+            elif self.judgePose(8) and self.previousPoseID != 8:  # avoid under
+                self.previousPoseID = 8
+                self.phaseCnt += 1
 
-            # delete past pose
-            if len(self.pastPoses) >= self.pastFrameNum:
-                del self.pastPoses[-1]
+            # exit attach phase process
+            if self.phaseCnt >= 5:
+                self.phaseCnt = 0
+                self.attackPhase = True
+                self.setOverlayCenter(
+                    self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 
-            # brake img process loop
-            if self.enemyHP <= 0:
-                self.end = True
+        # draw enemy hp
+        cv2.putText(self.imSensor, str(self.enemyHP), (10, 30),
+                    cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
 
-            # end/initialize process
-            if self.end is True:
-                self.end = False
-                self.enemyHP = 100
-                self.frameCnt = 0
-                return True
+        # draw player hp
+        cv2.putText(self.imSensor, str(self.playerHP), (320 - 30, 30),
+                    cv2.FONT_ITALIC, 1, (0, 255, 0), 2)
+
+        if debug:
+            poseName = ""
+            if self.previousPoseID == 0:
+                poseName = "P (R)"
+            elif self.previousPoseID == 1:
+                poseName = "P (L)"
+            elif self.previousPoseID == 2:
+                poseName = "UP (R)"
+            elif self.previousPoseID == 3:
+                poseName = "UP (L)"
+            elif self.previousPoseID == 4:
+                poseName = "HE"
+            elif self.previousPoseID == 5:
+                poseName = "A (R)"
+            elif self.previousPoseID == 6:
+                poseName = "A (L)"
+            elif self.previousPoseID == 7:
+                poseName = "G"
+            elif self.previousPoseID == 8:
+                poseName = "A (UN)"
+            cv2.putText(self.imSensor, poseName, (320 - 60, 50),
+                        cv2.FONT_ITALIC, 0.5, (0, 0, 255), 1)
+
+        # add pose
+        self.pastPoses.insert(0, currentPose)
+
+        # delete past pose
+        if len(self.pastPoses) >= self.pastFrameNum:
+            del self.pastPoses[-1]
+
+        # brake img process loop
+        if self.enemyHP <= 0:
+            self.end = True
+
+        # end/initialize process
+        if self.end is True:
+            self.end = False
+            self.enemyHP = 100
+            self.frameCnt = 0
+            return True
 
         self.imProcessed = self.imSensor
         self.frameCnt += 1
