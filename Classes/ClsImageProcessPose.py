@@ -1,5 +1,7 @@
 import cv2
 import math
+
+import numpy as np
 import mediapipe as mp
 
 from Classes.ClsImageProcess import ClsImageProcess
@@ -10,7 +12,6 @@ class ClsImageProcessPose(ClsImageProcess):
     def initProcess(self):
         self.isROIdefined = False
         self.ratioROI = 0.6
-        self.end = False
         self.frameCnt = 0
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
@@ -25,10 +26,16 @@ class ClsImageProcessPose(ClsImageProcess):
         self.previousPoseID = None
 
         # store enemy/player data
+        self.clear = False
+        self.gameover = False
         self.enemyHP = 100
         self.playerHP = 3
         self.attackPhase = True
         self.phaseCnt = 0
+        self.attackPhaseMax = 10
+        self.defensePhaseMax = 5
+        self.defensePatternIDs = []
+        self.initDefencePattern()
 
         # set overlay
         self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
@@ -36,16 +43,17 @@ class ClsImageProcessPose(ClsImageProcess):
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
-    def loadOverlayImage(self, path):
+    def loadOverlayImage(self, path: str) -> cv2.Mat:
         return cv2.imread(path, -1)
 
-    def makeOverlayMask(self, imOverlay):
+    def makeOverlayMask(self, imOverlay: cv2.Mat) -> cv2.Mat:
         imOverlayMask = imOverlay[:, :, 3]
         imOverlayMask = cv2.cvtColor(
             imOverlayMask, cv2.COLOR_GRAY2BGR)
         return imOverlayMask / 255
 
-    def setOverlayCenter(self, imOverlay, imOverlayMask, width=1024, height=600, dy=0):
+    def setOverlayCenter(self, imOverlay: cv2.Mat, imOverlayMask: cv2.Mat,
+                         width: int = 1024, height: int = 600, dy: int = 0):
         imOverlay = imOverlay[:, :, :3]
         h, w = imOverlayMask.shape[0], imOverlayMask.shape[1]
         self.window.setEnableOverlay(
@@ -53,29 +61,29 @@ class ClsImageProcessPose(ClsImageProcess):
         self.window.setOverlayImage(
             imOverlay, imOverlayMask)
 
-    def setRatioROI(self, ratioROI):
+    def setRatioROI(self, ratioROI: float):
         self.ratioROI = ratioROI
 
-    def defineROI(self, img):
+    def defineROI(self, img: cv2.Mat):
         width = int(img.shape[1] * self.ratioROI)
         self.leftPosROI = int((img.shape[1] - width) / 2)
         self.rightPosROI = img.shape[1] - self.leftPosROI
         self.isROIdefined = True
 
-    def drawCircle(self, x, y, r):
+    def drawCircle(self, x: int, y: int, r: int):
         cv2.circle(self.imSensor, (x, y), int(r), (255, 0, 0),
                    1, lineType=cv2.LINE_8, shift=0)
 
-    def putText(self, text, x, y):
+    def putText(self, text: str, x: int, y: int):
         cv2.putText(
             self.imSensor, text,
             (x, y), cv2.FONT_ITALIC, 0.5, (0, 0, 255), 1)
 
-    def calcDegree(self, x1, y1, x2, y2):
+    def calcDegree(self, x1: int, y1: int, x2: int, y2: int) -> float:
         radian = math.atan2(y2-y1, x2-x1)
         return radian * 180 / math.pi
 
-    def calcDistance(self, x1, y1, x2, y2):
+    def calcDistance(self, x1: int, y1: int, x2: int, y2: int) -> float:
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
     def judgeBodyDegree(self, vPoints: list, LR: str) -> bool:
@@ -215,11 +223,12 @@ class ClsImageProcessPose(ClsImageProcess):
                 return True
         return False
 
-    def changeHue(self, imOrig, hue):
+    @staticmethod
+    def changeHue(imOrig: cv2.Mat, hue: int) -> cv2.Mat:
         """
         imOrig: 変換対象の画像
         hue: 色相の値(0~359)
-         - 赤: 90, 黄緑: 180, 水色: 270
+         - 赤: 180
         """
         imHSV = cv2.cvtColor(
             imOrig, cv2.COLOR_BGR2HSV)
@@ -227,7 +236,8 @@ class ClsImageProcessPose(ClsImageProcess):
         return cv2.cvtColor(
             imHSV, cv2.COLOR_HSV2BGR)
 
-    def incrementHue(self, imOrig, dHue):
+    @staticmethod
+    def incrementHue(imOrig: cv2.Mat, dHue: int) -> cv2.Mat:
         """
         imOrig: 変換対象の画像
         dhue: 加算する色相の値(0~359)
@@ -237,6 +247,10 @@ class ClsImageProcessPose(ClsImageProcess):
         imHSV[:, :, (0)] = imHSV[:, :, (0)] + dHue
         return cv2.cvtColor(
             imHSV, cv2.COLOR_HSV2BGR)
+
+    def initDefencePattern(self):
+        self.defensePatternIDs = np.random.randint(
+            5, 9, (1, self.defensePhaseMax)).tolist()[0]
 
     def process(self):
         debug = True
@@ -350,7 +364,7 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.playerHP += 1
 
             # exit attach phase process
-            if self.phaseCnt >= 10:
+            if self.phaseCnt >= self.attackPhaseMax:
                 self.phaseCnt = 0
                 self.attackPhase = False
                 self.setOverlayCenter(
@@ -372,9 +386,11 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.phaseCnt += 1
 
             # exit attach phase process
-            if self.phaseCnt >= 5:
+            if self.phaseCnt >= self.defensePhaseMax:
                 self.phaseCnt = 0
                 self.attackPhase = True
+                self.initDefencePattern()
+                print(self.defensePatternIDs)
                 self.setOverlayCenter(
                     self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 
@@ -416,16 +432,28 @@ class ClsImageProcessPose(ClsImageProcess):
         if len(self.pastPoses) >= self.pastFrameNum:
             del self.pastPoses[-1]
 
-        # brake img process loop
+        # judge clear
         if self.enemyHP <= 0:
-            self.end = True
+            self.clear = True
 
-        # end/initialize process
-        if self.end is True:
-            self.end = False
+        # judge gameover
+        if self.playerHP <= 0:
+            self.gameover = True
+
+        # clear/initialize process
+        if self.clear is True:
+            self.clear = False
             self.enemyHP = 100
+            self.playerHP = 3
             self.frameCnt = 0
             return True
+
+        if self.gameover is True:
+            self.gameover = False
+            self.enemyHP = 100
+            self.playerHP = 3
+            self.frameCnt = 0
+            return False
 
         self.imProcessed = self.imSensor
         self.frameCnt += 1

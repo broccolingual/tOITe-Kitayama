@@ -9,6 +9,7 @@ def updateDictProc_Pose(dictProc):
         "POSE_Q": procPose_Q,
         "POSE_IMGPROC": procPose_ImageProc,
         "POSE_CORRECT": procPose_correct,
+        "POSE_WRONG": procPose_wrong,
     }
     return dict(dictProc, **dictProc_this)
 
@@ -18,11 +19,14 @@ def updateDictWindow_Pose(dictWindow):
     layoutPose_Q = make_fullimage_layout("images/tutorial1.png", "POSE_Q")
     layoutPose_Correct = make_fullimage_layout(
         "images/tutorial2.png", "POSE_CORRECT")
+    layoutPose_Wrong = make_fullimage_layout(
+        "images/tutorial2.png", "POSE_WRONG")
 
     dictLayout = {
         "POSE_Q": layoutPose_Q,
         "POSE_IMGPROC": "None",
-        "POSE_CORRECT": layoutPose_Correct
+        "POSE_CORRECT": layoutPose_Correct,
+        "POSE_WRONG": layoutPose_Wrong
     }
     dictWindow_this = setGUI(dictLayout)
 
@@ -53,7 +57,7 @@ def procPose_ImageProc(dictArgument):
     isFound = proc.execute()
     cv2.waitKey(1)
 
-    cLogger.logDebug("isFound : ", isFound)
+    # cLogger.logDebug("isFound : ", isFound)
     # print("sCountFound",sCountFound)
     # print("sFrame",sFrame)
 
@@ -61,6 +65,11 @@ def procPose_ImageProc(dictArgument):
         cAudioOut.playSoundAsync("sound/correct_24.wav")
         cCtrlCard.write_result("pose", "T")
         dictArgument["Start time"] = cState.updateState("POSE_CORRECT")
+        proc.closeWindows()
+    elif isFound is False:
+        cAudioOut.playSoundAsync("sound/wrong.wav")
+        cCtrlCard.write_result("pose", "T")
+        dictArgument["Start time"] = cState.updateState("POSE_WRONG")
         proc.closeWindows()
 
 
@@ -71,6 +80,18 @@ def procPose_correct(dictArgument):
     cCtrlCard = dictArgument["CtrlCard"]
 
     if event == "POSE_CORRECT":
+        cCtrlCard.write_result("pose", "T")
+        dictArgument["Start time"] = cState.updateState("SELECT_GAME")
+        cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
+
+
+# POSE_WRONGモード処理　======================================================
+def procPose_wrong(dictArgument):
+    event = dictArgument["Event"]
+    cState = dictArgument["State"]
+    cCtrlCard = dictArgument["CtrlCard"]
+
+    if event == "POSE_WRONG":
         cCtrlCard.write_result("pose", "T")
         dictArgument["Start time"] = cState.updateState("SELECT_GAME")
         cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
