@@ -36,9 +36,12 @@ class ClsImageProcessPose(ClsImageProcess):
         self.gameover = False
         self.enemyHP = 100
         self.playerHP = 3
+
+        # phase settings
         self.attackPhase = True
         self.phaseCnt = 0
         self.attackPhaseMax = 10
+        self.defenceCheckPhase = False
         self.defensePhaseMax = 5
         self.defensePatternIDs = []
         self.initDefencePattern()
@@ -108,6 +111,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # judge logic
         shoulder_deg = self.calcDegree(right_shoulder[0], right_shoulder[1],
                                        left_shoulder[0], left_shoulder[1])
+
         if LR == "left" and shoulder_deg < 75:
             return True
         elif LR == "right" and shoulder_deg > 105:
@@ -136,10 +140,12 @@ class ClsImageProcessPose(ClsImageProcess):
             (left_hip[1] + right_hip[1]) / 2)
 
         if (LR == "left" and
-                (left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and left_wrist[1] < left_elbow[1]:
+            (left_elbow[0] - left_wrist[0]) ** 2 + (left_elbow[1] - left_wrist[1]) ** 2 < (body_height / 3) ** 2) and \
+                left_wrist[1] < left_elbow[1]:
             return True
         elif (LR == "right" and
-              (right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and right_wrist[1] < right_elbow[1]:
+              (right_elbow[0] - right_wrist[0]) ** 2 + (right_elbow[1] - right_wrist[1]) ** 2 < (body_height / 3) ** 2) and \
+                right_wrist[1] < right_elbow[1]:
             return True
         return False
 
@@ -153,24 +159,22 @@ class ClsImageProcessPose(ClsImageProcess):
         right_wrist = vPoints[16]
 
         # judge logic
-        try:
-            ra = np.array([right_wrist[0] - right_elbow[0],
-                          right_wrist[1] - right_elbow[1]])
-            rb = np.array([right_shoulder[0] - right_elbow[0],
-                          right_shoulder[1] - right_elbow[1]])
-            right_cos = np.inner(ra, rb) / \
-                (np.linalg.norm(ra) * np.linalg.norm(rb))
+        ra = np.array([right_wrist[0] - right_elbow[0],
+                       right_wrist[1] - right_elbow[1]])
+        rb = np.array([right_shoulder[0] - right_elbow[0],
+                       right_shoulder[1] - right_elbow[1]])
+        right_cos = np.inner(ra, rb) / \
+            (np.linalg.norm(ra) * np.linalg.norm(rb))
 
-            la = np.array([left_wrist[0] - left_elbow[0],
-                          left_wrist[1] - left_elbow[1]])
-            lb = np.array([left_shoulder[0] - left_elbow[0],
-                          left_shoulder[1] - left_elbow[1]])
-            left_cos = np.inner(la, lb) / \
-                (np.linalg.norm(la) * np.linalg.norm(lb))
-        except ZeroDivisionError:
-            return False
+        la = np.array([left_wrist[0] - left_elbow[0],
+                       left_wrist[1] - left_elbow[1]])
+        lb = np.array([left_shoulder[0] - left_elbow[0],
+                       left_shoulder[1] - left_elbow[1]])
+        left_cos = np.inner(la, lb) / \
+            (np.linalg.norm(la) * np.linalg.norm(lb))
 
-        if (0.9 > right_cos > 0.2) & (0.9 > left_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
+        if (0.9 > right_cos > 0.2) & (0.9 > left_cos > 0.2) & \
+                (right_wrist[0] > left_wrist[0]):
             return True
         return False
 
@@ -186,7 +190,9 @@ class ClsImageProcessPose(ClsImageProcess):
         # judge logic
         length1 = abs(left_shoulder[0]-right_shoulder[0]) / 3
         length2 = abs(left_shoulder[0]-right_shoulder[0]) / 5
-        if ((right_wrist[0]-left_wrist[0])**2+(right_wrist[1]-left_wrist[1])**2 < length1**2) and ((right_thumb[0]-left_thumb[0])**2+(right_thumb[1]-left_thumb[1])**2 < length2**2):
+
+        if ((right_wrist[0] - left_wrist[0]) ** 2 + (right_wrist[1] - left_wrist[1]) ** 2 < length1 ** 2) and \
+                ((right_thumb[0] - left_thumb[0]) ** 2 + (right_thumb[1] - left_thumb[1]) ** 2 < length2 ** 2):
             return True
         return False
 
@@ -203,22 +209,19 @@ class ClsImageProcessPose(ClsImageProcess):
         right_thumb = vPoints[22]
 
         # judge logic
-        try:
-            ra = np.array([right_wrist[0] - right_elbow[0],
-                           right_wrist[1] - right_elbow[1]])
-            rb = np.array([right_shoulder[0] - right_elbow[0],
-                           right_shoulder[1] - right_elbow[1]])
-            right_cos = np.inner(ra, rb) / (np.linalg.norm(ra)
-                                            * np.linalg.norm(rb))
+        ra = np.array([right_wrist[0] - right_elbow[0],
+                       right_wrist[1] - right_elbow[1]])
+        rb = np.array([right_shoulder[0] - right_elbow[0],
+                       right_shoulder[1] - right_elbow[1]])
+        right_cos = np.inner(ra, rb) / (np.linalg.norm(ra)
+                                        * np.linalg.norm(rb))
 
-            la = np.array([left_wrist[0] - left_elbow[0],
-                           left_wrist[1] - left_elbow[1]])
-            lb = np.array([left_shoulder[0] - left_elbow[0],
-                           left_shoulder[1] - left_elbow[1]])
-            left_cos = np.inner(la, lb) / \
-                (np.linalg.norm(la) * np.linalg.norm(lb))
-        except ZeroDivisionError:
-            return False
+        la = np.array([left_wrist[0] - left_elbow[0],
+                       left_wrist[1] - left_elbow[1]])
+        lb = np.array([left_shoulder[0] - left_elbow[0],
+                       left_shoulder[1] - left_elbow[1]])
+        left_cos = np.inner(la, lb) / \
+            (np.linalg.norm(la) * np.linalg.norm(lb))
 
         if (LR == "left"
                 and ((left_thumb[1] < nose[1]) & (-0.86 < left_cos < 0.86))):
@@ -229,19 +232,23 @@ class ClsImageProcessPose(ClsImageProcess):
         return False
 
     def judgeAvoidUnder(self, vPoints: list) -> bool:
+        # define point
         left_shoulder = vPoints[11]
         right_shoulder = vPoints[12]
         left_hip = vPoints[23]
         right_hip = vPoints[24]
         left_knee = vPoints[25]
         right_knee = vPoints[26]
+
+        # judge logic
         body_height = self.calcDistance(
             (left_shoulder[0] + right_shoulder[0]) / 2,
             (left_shoulder[1] + right_shoulder[1]) / 2,
             (left_hip[0] + right_hip[0]) / 2,
             (left_hip[1] + right_hip[1]) / 2)
-        if (((left_knee[0] - left_hip[0]) ** 2 + (left_knee[1] - left_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)
-                and ((right_knee[0] - right_hip[0]) ** 2 + (right_knee[1] - right_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)):
+
+        if (((left_knee[0] - left_hip[0]) ** 2 + (left_knee[1] - left_hip[1]) ** 2 < (body_height * 2 / 3) ** 2) and
+                ((right_knee[0] - right_hip[0]) ** 2 + (right_knee[1] - right_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)):
             return True
         return False
 
@@ -392,33 +399,49 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.playerHP += 1
 
             # exit attach phase process
-            if self.phaseCnt >= self.attackPhaseMax:
+            if self.phaseCnt == self.attackPhaseMax:
                 self.phaseCnt = 0
                 self.attackPhase = False
                 self.setOverlayCenter(
                     self.imOverlayEnemyRage, self.imOverlayMaskEnemy, dy=0)
 
         # Guard phase
-        if not self.attackPhase and self.frameCnt % 30 == 0:
-            if self.judgePose(5) and self.previousPoseID != 5:  # right
-                self.previousPoseID = 5
+        if not self.attackPhase and self.frameCnt % 50 == 0:
+            currentDefencePose = self.defensePatternIDs[self.phaseCnt]
+            if self.defenceCheckPhase is False:
+                if currentDefencePose == 5:
+                    self.cAudioOut.playSoundAsync("sound/dodge_right.wav")
+                elif currentDefencePose == 6:
+                    self.cAudioOut.playSoundAsync("sound/dodge_left.wav")
+                elif currentDefencePose == 7:
+                    self.cAudioOut.playSoundAsync("sound/guard.wav")
+                elif currentDefencePose == 8:
+                    self.cAudioOut.playSoundAsync("sound/dodge_under.wav")
+                self.defenceCheckPhase = True
+            else:
+                if self.judgePose(5, past_frame=15) and currentDefencePose == 5:  # right
+                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.previousPoseID = 5
+                elif self.judgePose(6, past_frame=15) and currentDefencePose == 6:  # left
+                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.previousPoseID = 6
+                elif self.judgePose(7, past_frame=15) and currentDefencePose == 7:  # guard
+                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.previousPoseID = 7
+                elif self.judgePose(8, past_frame=15) and currentDefencePose == 8:  # avoid under
+                    self.cAudioOut.playSoundAsync("sound/correct_24.wav")
+                    self.previousPoseID = 8
+                else:
+                    self.cAudioOut.playSoundAsync("sound/wrong_24.wav")
+                    self.playerHP -= 1
                 self.phaseCnt += 1
-            elif self.judgePose(6) and self.previousPoseID != 6:  # left
-                self.previousPoseID = 6
-                self.phaseCnt += 1
-            elif self.judgePose(7) and self.previousPoseID != 7:  # guard
-                self.previousPoseID = 7
-                self.phaseCnt += 1
-            elif self.judgePose(8) and self.previousPoseID != 8:  # avoid under
-                self.previousPoseID = 8
-                self.phaseCnt += 1
+                self.defenceCheckPhase = False
 
             # exit attach phase process
-            if self.phaseCnt >= self.defensePhaseMax:
+            if self.phaseCnt == self.defensePhaseMax:
                 self.phaseCnt = 0
                 self.attackPhase = True
                 self.initDefencePattern()
-                print(self.defensePatternIDs)
                 self.setOverlayCenter(
                     self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 

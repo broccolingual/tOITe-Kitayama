@@ -62,12 +62,12 @@ def procPose_ImageProc(dictArgument):
     # print("sFrame",sFrame)
 
     if isFound is True:
-        cAudioOut.playSoundAsync("sound/correct_24.wav")
+        cAudioOut.playSoundAsync("sound/clear.wav")
         cCtrlCard.write_result("pose", "T")
         dictArgument["Start time"] = cState.updateState("POSE_CORRECT")
         proc.closeWindows()
     elif isFound is False:
-        cAudioOut.playSoundAsync("sound/wrong.wav")
+        cAudioOut.playSoundAsync("sound/gameover.wav")
         cCtrlCard.write_result("pose", "T")
         dictArgument["Start time"] = cState.updateState("POSE_WRONG")
         proc.closeWindows()
