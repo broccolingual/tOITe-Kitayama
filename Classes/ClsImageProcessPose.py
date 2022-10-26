@@ -29,7 +29,7 @@ class ClsImageProcessPose(ClsImageProcess):
         self.playerHP = 3
 
         # set overlay
-        self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
+        self.imOverlayEnemy = self.loadOverlayImage("./images/bg_conv.png")
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
@@ -309,14 +309,14 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.imOverlayEnemy = self.changeHue(
                         self.imOverlayEnemy, 90)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=20)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
                 elif self.judgePose(3) and self.previousPoseID != 3:
                     self.enemyHP -= 2
                     self.previousPoseID = 3
                     self.imOverlayEnemy = self.changeHue(
                         self.imOverlayEnemy, 90)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=20)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
                 elif self.judgePose(4) and self.previousPoseID != 4:  # guard
                     PlaySound("./sound/guard.wav")
                     self.previousPoseID = 4
@@ -335,16 +335,16 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.enemyHP -= 4
                     self.previousPoseID = 7
                     self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 180)
+                        self.imOverlayEnemy, 150)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=100)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
                 elif self.judgePose(8) and self.previousPoseID != 8:  # upper punch (R)
                     self.enemyHP -= 4
                     self.previousPoseID = 8
                     self.imOverlayEnemy = self.changeHue(
-                        self.imOverlayEnemy, 180)
+                        self.imOverlayEnemy, 150)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=100)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 
             else:
                 self.imOverlayEnemy = self.changeHue(
