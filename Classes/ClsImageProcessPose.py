@@ -288,7 +288,7 @@ class ClsImageProcessPose(ClsImageProcess):
             5, 9, (1, self.defensePhaseMax)).tolist()[0]
 
     def process(self):
-        debug = True
+        debug = False
 
         # set ROI
         if self.isROIdefined is False:
