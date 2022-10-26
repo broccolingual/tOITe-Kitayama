@@ -34,7 +34,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # store enemy/player data
         self.clear = False
         self.gameover = False
-        self.enemyHP = 100
+        self.enemyHP = 30
         self.playerHP = 3
 
         # phase settings
