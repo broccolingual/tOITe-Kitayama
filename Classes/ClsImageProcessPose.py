@@ -26,6 +26,7 @@ class ClsImageProcessPose(ClsImageProcess):
 
         # store enemy/player data
         self.enemyHP = 100
+        self.playerHP = 3
 
         # set overlay
         self.imOverlayEnemy = self.loadOverlayImage("./images/enemy.png")
@@ -41,11 +42,11 @@ class ClsImageProcessPose(ClsImageProcess):
             imOverlayMask, cv2.COLOR_GRAY2BGR)
         return imOverlayMask / 255
 
-    def setOverlayCenter(self, imOverlay, imOverlayMask, width=1024, height=600):
+    def setOverlayCenter(self, imOverlay, imOverlayMask, width=1024, height=600, dy=0):
         imOverlay = imOverlay[:, :, :3]
         h, w = imOverlayMask.shape[0], imOverlayMask.shape[1]
         self.window.setEnableOverlay(
-            True, int(width / 2 - w / 2), int(height / 2 - h / 2))
+            True, int(width / 2 - w / 2), int(height / 2 - h / 2) + dy)
         self.window.setOverlayImage(
             imOverlay, imOverlayMask)
 
@@ -131,12 +132,12 @@ class ClsImageProcessPose(ClsImageProcess):
 
         # judge logic
         # TODO: ZeroDivision Errorの修正
-        rel_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
-                   (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
-        lel_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
-                   (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+        r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
+                 (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
+        l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
+                 (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
 
-        if (0.9 > rel_cos > 0.2) & (0.9 > lel_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
+        if (0.9 > r_cos > 0.2) & (0.9 > l_cos > 0.2) & (right_wrist[0] > left_wrist[0]):
             return True
         return False
 
@@ -153,6 +154,49 @@ class ClsImageProcessPose(ClsImageProcess):
         length1 = abs(left_shoulder[0]-right_shoulder[0]) / 3
         length2 = abs(left_shoulder[0]-right_shoulder[0]) / 5
         if ((right_wrist[0]-left_wrist[0])**2+(right_wrist[1]-left_wrist[1])**2 < length1**2) and ((right_thumb[0]-left_thumb[0])**2+(right_thumb[1]-left_thumb[1])**2 < length2**2):
+            return True
+        return False
+
+    def judgeUpperPunch(self, vPoints: list, LR: str) -> bool:
+        # define point
+        nose = vPoints[0]
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        left_elbow = vPoints[13]
+        left_wrist = vPoints[15]
+        right_elbow = vPoints[14]
+        right_wrist = vPoints[16]
+        left_thumb = vPoints[21]
+        right_thumb = vPoints[22]
+
+        # judge logic
+        r_cos = ((right_wrist[0] - right_elbow[0]) * (right_shoulder[0] - right_elbow[0]) +
+                 (right_wrist[1] - right_elbow[1]) * (right_shoulder[1] - right_elbow[1])) / (math.sqrt((right_wrist[0] - right_elbow[0]) ** 2 + (right_wrist[1] - right_elbow[1]) ** 2) * math.sqrt((right_shoulder[0] - right_elbow[0]) ** 2 + (right_shoulder[1] - right_elbow[1]) ** 2))
+        l_cos = ((left_wrist[0] - left_elbow[0]) * (left_shoulder[0] - left_elbow[0]) +
+                 (left_wrist[1] - left_elbow[1]) * (left_shoulder[1] - left_elbow[1])) / (math.sqrt((left_wrist[0] - left_elbow[0]) ** 2 + (left_wrist[1] - left_elbow[1]) ** 2) * math.sqrt((left_shoulder[0] - left_elbow[0]) ** 2 + (left_shoulder[1] - left_elbow[1]) ** 2))
+
+        if (LR == "left"
+                and ((left_thumb[1] < nose[1]) and (-0.86 < l_cos < 0.86))):
+            return True
+        elif (LR == "right"
+              and ((right_thumb[1] < nose[1]) and (-0.86 < r_cos < 0.86))):
+            return True
+        return False
+
+    def judgeAvoidUnder(self, vPoints: list) -> bool:
+        left_shoulder = vPoints[11]
+        right_shoulder = vPoints[12]
+        left_hip = vPoints[23]
+        right_hip = vPoints[24]
+        left_knee = vPoints[25]
+        right_knee = vPoints[26]
+        body_height = self.calcDistance(
+            (left_shoulder[0] + right_shoulder[0]) /
+            2, (left_shoulder[1] + right_shoulder[1]) / 2,
+            (left_hip[0] + right_hip[0]) / 2,
+            (left_hip[1] + right_hip[1]) / 2)
+        if (((left_knee[0] - left_hip[0]) ** 2 + (left_knee[1] - left_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)
+                and ((right_knee[0] - right_hip[0]) ** 2 + (right_knee[1] - right_hip[1]) ** 2 < (body_height * 2 / 3) ** 2)):
             return True
         return False
 
@@ -201,7 +245,8 @@ class ClsImageProcessPose(ClsImageProcess):
         imROI = cv2.cvtColor(imROI, cv2.COLOR_RGB2BGR)
 
         if results.pose_landmarks:
-            currentPose = [False, False, False, False, False, False]
+            currentPose = [False, False, False,
+                           False, False, False, False, False, False]
             # calc coord (ROI + landmarks)
             # vPoint[n][0]: x, vPoint[n][1]: y, vPoint[n][2]: visibility
             vPoints = [(int(landmark.x*imROI.shape[1]+self.leftPosROI),
@@ -243,6 +288,16 @@ class ClsImageProcessPose(ClsImageProcess):
             if self.judgeHeal(vPoints):  # id: 5
                 currentPose[5] = True
 
+            # judge avoid under
+            if self.judgeAvoidUnder(vPoints):  # id: 6
+                currentPose[6] = True
+
+            # judge upper punch
+            if self.judgeUpperPunch(vPoints, "left"):  # id: 7
+                currentPose[7] = True
+            if self.judgeUpperPunch(vPoints, "right"):  # id: 8
+                currentPose[8] = True
+
             # draw enemy hp
             cv2.putText(self.imSensor, str(self.enemyHP), (10, 40),
                         cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
@@ -250,26 +305,52 @@ class ClsImageProcessPose(ClsImageProcess):
             if self.frameCnt % 5 == 0:
                 if self.judgePose(2) and self.previousPoseID != 2:
                     self.enemyHP -= 2
-                    PlaySound("./sound/punch.wav")
                     self.previousPoseID = 2
-                    self.imOverlayEnemy = self.incrementHue(
-                        self.imOverlayEnemy, 5)
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 90)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=20)
                 elif self.judgePose(3) and self.previousPoseID != 3:
                     self.enemyHP -= 2
-                    PlaySound("./sound/punch.wav")
                     self.previousPoseID = 3
-                    self.imOverlayEnemy = self.incrementHue(
-                        self.imOverlayEnemy, 5)
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 90)
                     self.setOverlayCenter(
-                        self.imOverlayEnemy, self.imOverlayMaskEnemy)
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=20)
                 elif self.judgePose(4) and self.previousPoseID != 4:  # guard
                     PlaySound("./sound/guard.wav")
                     self.previousPoseID = 4
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 90)
                 elif self.judgePose(5) and self.previousPoseID != 5:  # heal
                     PlaySound("./sound/heal.wav")
                     self.previousPoseID = 5
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 90)
+                elif self.judgePose(6) and self.previousPoseID != 6:  # avoid under
+                    self.previousPoseID = 6
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 90)
+                elif self.judgePose(7) and self.previousPoseID != 7:  # upper punch (L)
+                    self.enemyHP -= 4
+                    self.previousPoseID = 7
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 180)
+                    self.setOverlayCenter(
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=100)
+                elif self.judgePose(8) and self.previousPoseID != 8:  # upper punch (R)
+                    self.enemyHP -= 4
+                    self.previousPoseID = 8
+                    self.imOverlayEnemy = self.changeHue(
+                        self.imOverlayEnemy, 180)
+                    self.setOverlayCenter(
+                        self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=100)
+
+            else:
+                self.imOverlayEnemy = self.changeHue(
+                    self.imOverlayEnemy, 90)
+                self.setOverlayCenter(
+                    self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
             # add pose
             self.pastPoses.insert(0, currentPose)
