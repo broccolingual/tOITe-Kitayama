@@ -34,7 +34,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # store enemy/player data
         self.clear = False
         self.gameover = False
-        self.enemyHP = 30
+        self.enemyHP = 100
         self.playerHP = 3
 
         # phase settings
@@ -47,7 +47,14 @@ class ClsImageProcessPose(ClsImageProcess):
         self.initDefencePattern()
 
         # set overlay
-        self.imOverlayEnemy = self.loadOverlayImage("./images/bg_conv.png")
+        self.imOverlayEnemy = self.loadOverlayImage(
+            "./images/enemy-normal.png")
+        self.imOverlayEnemyLeft = self.loadOverlayImage(
+            "./images/enemy-left.png")
+        self.imOverlayEnemyRight = self.loadOverlayImage(
+            "./images/enemy-right.png")
+        self.imOverlayEnemyJump = self.loadOverlayImage(
+            "./images/enemy-jump.png")
         self.imOverlayEnemyRage = self.changeHue(self.imOverlayEnemy, 180)
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
@@ -378,26 +385,39 @@ class ClsImageProcessPose(ClsImageProcess):
                 self.previousPoseID = 0
                 self.enemyHP -= 2
                 self.phaseCnt += 1
+                self.setOverlayCenter(
+                    self.imOverlayEnemyLeft, self.imOverlayMaskEnemy, dy=0)
             # punch (L)
             elif self.judgePose(1) and self.previousPoseID not in (1, 3):
                 self.previousPoseID = 1
                 self.enemyHP -= 2
                 self.phaseCnt += 1
+                self.setOverlayCenter(
+                    self.imOverlayEnemyRight, self.imOverlayMaskEnemy, dy=0)
             # upper punch (R)
             elif self.judgePose(2) and self.previousPoseID != 2:
                 self.previousPoseID = 2
                 self.enemyHP -= 3
                 self.phaseCnt += 1
+                self.setOverlayCenter(
+                    self.imOverlayEnemyJump, self.imOverlayMaskEnemy, dy=0)
             # upper punch (L)
             elif self.judgePose(3) and self.previousPoseID != 3:
                 self.previousPoseID = 3
                 self.enemyHP -= 3
                 self.phaseCnt += 1
+                self.setOverlayCenter(
+                    self.imOverlayEnemyJump, self.imOverlayMaskEnemy, dy=0)
             # heal (hidden)
             elif self.judgePose(4) and self.previousPoseID != 4:
                 self.cAudioOut.playSoundAsync("sound/heal.wav")
                 self.previousPoseID = 4
                 self.playerHP += 1
+                self.setOverlayCenter(
+                    self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
+            else:
+                self.setOverlayCenter(
+                    self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 
             # exit attach phase process
             if self.phaseCnt == self.attackPhaseMax:
@@ -449,11 +469,11 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.imOverlayEnemy, self.imOverlayMaskEnemy, dy=0)
 
         # draw enemy hp
-        cv2.putText(self.imSensor, str(self.enemyHP), (10, 30),
+        cv2.putText(self.imSensor, str(self.enemyHP), (30, 35),
                     cv2.FONT_ITALIC, 1, (0, 0, 255), 2)
 
         # draw player hp
-        cv2.putText(self.imSensor, str(self.playerHP), (320 - 30, 30),
+        cv2.putText(self.imSensor, str(self.playerHP), (320 - 60, 35),
                     cv2.FONT_ITALIC, 1, (0, 255, 0), 2)
 
         if debug:
