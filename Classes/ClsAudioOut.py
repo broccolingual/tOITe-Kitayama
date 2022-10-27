@@ -49,6 +49,9 @@ class ClsAudioOut:
         self.blStateChange = True
         self.strNextState = strNextState
 
+    def finalize(self):
+        pass
+
 
 if __name__ == '__main__':
     from ClsLogger import ClsLogger
