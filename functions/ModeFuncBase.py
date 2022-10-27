@@ -68,8 +68,8 @@ def standbyModeProc(dictArgument):
             cLogger.logDebug("Blank card was placed")
             cCtrlCard.initCard()
             cAudioOut.playSoundAsync(
-                "sound/card_set_24.wav", "sound/title_24.wav")
-            dictArgument["Start time"] = cState.updateState("TITLE")
+                "sound/card_set_24.wav")
+            dictArgument["Start time"] = cState.updateState("SELECT_GAME")
 
 
 # TITLEモード処理 ======================================================
