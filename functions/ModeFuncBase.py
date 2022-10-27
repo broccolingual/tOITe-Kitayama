@@ -69,7 +69,7 @@ def standbyModeProc(dictArgument):
             cCtrlCard.initCard()
             cAudioOut.playSoundAsync(
                 "sound/card_set_24.wav")
-            dictArgument["Start time"] = cState.updateState("SELECT_GAME")
+            dictArgument["Start time"] = cState.updateState("TUTORIAL_1")
 
 
 # TITLEモード処理 ======================================================
