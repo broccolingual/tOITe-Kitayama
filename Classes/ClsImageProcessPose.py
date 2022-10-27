@@ -59,6 +59,9 @@ class ClsImageProcessPose(ClsImageProcess):
         self.imOverlayMaskEnemy = self.makeOverlayMask(self.imOverlayEnemy)
         self.setOverlayCenter(self.imOverlayEnemy, self.imOverlayMaskEnemy)
 
+    def reset(self):
+        pass
+
     def loadOverlayImage(self, path: str) -> cv2.Mat:
         return cv2.imread(path, -1)
 
