@@ -41,6 +41,7 @@ def procPose_Q(dictArgument):
     cAudioOut = dictArgument["AudioOut"]
 
     if event == "POSE_Q":
+        cAudioOut.playSoundAsync("sound/do_attack.wav")
         dictArgument["Start time"] = cState.updateState("POSE_IMGPROC")
         proc.createWindows()
 

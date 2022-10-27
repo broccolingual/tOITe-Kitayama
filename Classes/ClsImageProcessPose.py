@@ -34,7 +34,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # store enemy/player data
         self.clear = False
         self.gameover = False
-        self.enemyHP = 100
+        self.enemyHP = 99
         self.playerHP = 3
 
         # phase settings
@@ -379,7 +379,7 @@ class ClsImageProcessPose(ClsImageProcess):
                             cv2.FONT_ITALIC, 0.5, (255, 0, 0), 1)
 
         # Attach phase
-        if self.attackPhase and self.frameCnt % 5 == 0:
+        if self.attackPhase and self.frameCnt % 6 == 0:
             # punch (R)
             if self.judgePose(0) and self.previousPoseID not in (0, 2):
                 self.previousPoseID = 0
@@ -428,7 +428,7 @@ class ClsImageProcessPose(ClsImageProcess):
                     self.imOverlayEnemyRage, self.imOverlayMaskEnemy, dy=0)
 
         # Guard phase
-        if not self.attackPhase and self.frameCnt % 50 == 0:
+        if not self.attackPhase and self.frameCnt % 45 == 0:
             currentDefencePose = self.defensePatternIDs[self.phaseCnt]
             if self.defenceCheckPhase is False:
                 if currentDefencePose == 5:
@@ -524,7 +524,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # clear/initialize process
         if self.clear is True:
             self.clear = False
-            self.enemyHP = 100
+            self.enemyHP = 99
             self.playerHP = 3
             self.frameCnt = 0
             return True
@@ -532,7 +532,7 @@ class ClsImageProcessPose(ClsImageProcess):
         # gameover/initialize process
         if self.gameover is True:
             self.gameover = False
-            self.enemyHP = 100
+            self.enemyHP = 99
             self.playerHP = 3
             self.frameCnt = 0
             return False
