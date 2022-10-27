@@ -56,6 +56,7 @@ def standbyModeProc(dictArgument):
     if setFlag:
         dictSaveData = cCtrlCard.read_result()
         cLogger.logDebug("Save Data:", dictSaveData)
+        cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=False)
 
         if dictSaveData["tutorial"] == "T":
             if dictSaveData["pose"] == "T":
