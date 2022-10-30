@@ -107,7 +107,8 @@ class ClsCardIF:
 
         if tag is not None:
             if self.currentIdm != binascii.hexlify(tag._nfcid).decode():
-                print(f"Touched : {binascii.hexlify(tag._nfcid).decode()}\n{tag}")
+                print(
+                    f"Touched : {binascii.hexlify(tag._nfcid).decode()}\n{tag}")
                 self.currentTag = tag
                 self.currentTagType = tag.type
                 self.currentIdm = binascii.hexlify(tag._nfcid).decode()

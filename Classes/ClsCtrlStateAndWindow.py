@@ -2,53 +2,53 @@ import time
 
 
 class ClsCtrlStateAndWindow:
-	def __init__(self, strFirstWindow, strBackGround, dictWindow):
-		self.dictWindow = dictWindow
-		
-		for sKey in self.dictWindow:
-			if self.dictWindow[sKey] != "None":
-				window = self.dictWindow[sKey]
-				window.hide()
-				#window.Maximize()
-				
-		# 背景ウィンドウ
-		window = self.dictWindow[strBackGround]
-		window.un_hide()
+    def __init__(self, strFirstWindow, strBackGround, dictWindow):
+        self.dictWindow = dictWindow
 
-		# 初期ウィンドウ
-		window = self.dictWindow[strFirstWindow]
-		window.un_hide()
+        for sKey in self.dictWindow:
+            if self.dictWindow[sKey] != "None":
+                window = self.dictWindow[sKey]
+                window.hide()
+                # window.Maximize()
 
-		self.strState = strFirstWindow
+        # 背景ウィンドウ
+        window = self.dictWindow[strBackGround]
+        window.un_hide()
 
-	def Finalize(self):
-		self.closeAllWindows()
+        # 初期ウィンドウ
+        window = self.dictWindow[strFirstWindow]
+        window.un_hide()
 
-	def setLogger(self, cLogger):
-		self.logger = cLogger
+        self.strState = strFirstWindow
 
-	def updateState(self, strNextState):
-		self.switchWindow(strNextState)
-		self.strState = strNextState
-		self.logger.logDebug("State Change: ", strNextState)
-		return time.time()
+    def Finalize(self):
+        self.closeAllWindows()
 
-	def readEvent(self, timeout=500):
-		window = self.dictWindow[self.strState]
-		return window.read(timeout=timeout, timeout_key="-timeout-")
+    def setLogger(self, cLogger):
+        self.logger = cLogger
 
-	def switchWindow(self, strNewState):
-		if self.dictWindow[strNewState] != "None":
-			self.dictWindow[strNewState].un_hide()
-		if self.dictWindow[self.strState] != "None":
-			self.dictWindow[self.strState].hide()
+    def updateState(self, strNextState):
+        self.switchWindow(strNextState)
+        self.strState = strNextState
+        self.logger.logDebug("State Change: ", strNextState)
+        return time.time()
 
-	def getState(self):
-		return self.strState
+    def readEvent(self, timeout=500):
+        window = self.dictWindow[self.strState]
+        return window.read(timeout=timeout, timeout_key="-timeout-")
 
-	def closeAllWindows(self):
-		for sKey in self.dictWindow:
-			window = self.dictWindow[sKey]
+    def switchWindow(self, strNewState):
+        if self.dictWindow[strNewState] != "None":
+            self.dictWindow[strNewState].un_hide()
+        if self.dictWindow[self.strState] != "None":
+            self.dictWindow[self.strState].hide()
 
-			if window != "None":
-				window.close()
+    def getState(self):
+        return self.strState
+
+    def closeAllWindows(self):
+        for sKey in self.dictWindow:
+            window = self.dictWindow[sKey]
+
+            if window != "None":
+                window.close()

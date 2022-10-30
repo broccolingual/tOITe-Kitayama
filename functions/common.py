@@ -3,6 +3,7 @@ import os
 import subprocess
 
 
+# アンケート結果をCSVファイルに保存
 def getDictFlag():
     dictFlag = {
         "tutorial": "チュートリアル",
@@ -41,12 +42,12 @@ def Reset_Game(dictArgument):
 
 
 # ゲームをクリアしたかを判定
-def CheckComplete(cCtrlCard):
+def CheckComplete(cCtrlCard, dictFlag):
     dictSaveData = cCtrlCard.read_result()
 
     bClear = True
-    for key in ["ice", "pizza", "sea", "image"]:
-        if dictSaveData[key] != "T":
+    for key in dictFlag.keys():
+        if dictSaveData[key] != "T" and key != "complete":
             bClear = False
             break
 
@@ -56,9 +57,6 @@ def CheckComplete(cCtrlCard):
 def PlaySound(path):
     if os.name != 'nt':
         subprocess.Popen(["aplay", "--quiet", path])
-    else:
-        subprocess.Popen(
-            ["powershell", "-c", f"(New-Object Media.SoundPlayer '{path}').PlaySync();"])
     print('play sound')
 
 
