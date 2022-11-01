@@ -7,7 +7,6 @@ import mediapipe as mp
 from Classes.ClsImageProcess import ClsImageProcess
 from Classes.ClsAudioOut import ClsAudioOut
 from Classes.ClsLogger import ClsLogger
-from functions.common import PlaySound
 
 
 class ClsImageProcessPose(ClsImageProcess):

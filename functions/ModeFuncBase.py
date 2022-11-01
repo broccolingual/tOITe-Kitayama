@@ -58,15 +58,15 @@ def standbyModeProc(dictArgument):
         cLogger.logDebug("Save Data:", dictSaveData)
         cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=False)
 
-        if cCtrlCard.checkComplete():
-            dictArgument["Start time"] = cState.updateState("ENDING")
-
         if dictSaveData["tutorial"] == "T":
             if dictSaveData["pose"] == "T":
                 cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
 
             cAudioOut.playSoundAsync("sound/card_set_24.wav")
             dictArgument["Start time"] = cState.updateState("SELECT_GAME")
+
+        elif cCtrlCard.checkComplete():
+            dictArgument["Start time"] = cState.updateState("ENDING")
 
         else:
             cLogger.logDebug("Blank card was placed")

@@ -122,7 +122,7 @@ def mainThread():
         if dictArgument["Complete"] == 1:
             break
 
-        if blDebug == False:
+        if blDebug is False:
             pyautogui.moveTo(2, 2)
 
         # フレームを記録
