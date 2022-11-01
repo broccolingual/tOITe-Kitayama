@@ -58,6 +58,9 @@ def standbyModeProc(dictArgument):
         cLogger.logDebug("Save Data:", dictSaveData)
         cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=False)
 
+        if cCtrlCard.checkComplete():
+            dictArgument["Start time"] = cState.updateState("ENDING")
+
         if dictSaveData["tutorial"] == "T":
             if dictSaveData["pose"] == "T":
                 cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
@@ -102,8 +105,8 @@ def select_game_ModeProc(dictArgument):
 def endingModeProc(dictArgument):
     event = dictArgument["Event"]
 
-    if event == "ENDING":
-        dictArgument["Complete"] = 1
+    # if event == "ENDING":
+    #     dictArgument["Complete"] = 1
 
 
 # card_errorモード処理 ======================================================
