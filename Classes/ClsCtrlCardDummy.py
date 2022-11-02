@@ -54,3 +54,12 @@ class ClsCtrlCard:
 
     def check_identity(self):
         return True
+
+    def checkComplete(self):
+        blClear = True
+        for key in self.dictFlagRecord.keys():
+            if self.dictFlagRecord[key] != "T":
+                blClear = False
+                break
+
+        return blClear

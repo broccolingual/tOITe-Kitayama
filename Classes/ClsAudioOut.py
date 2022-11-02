@@ -10,6 +10,9 @@ class ClsAudioOut:
         self.blStateChange = False
         self.logger = cLogger
 
+    def finalize(self):
+        pass
+
     def setDictArgument(self, dictArgument):
         self.dictArgument = dictArgument
 

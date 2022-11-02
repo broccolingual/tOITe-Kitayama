@@ -82,11 +82,12 @@ def procPose_correct(dictArgument):
 
     if event == "POSE_CORRECT":
         cCtrlCard.write_result("pose", "T")
+        cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
+
         if cCtrlCard.checkComplete():
             dictArgument["Start time"] = cState.updateState("ENDING")
         else:
             dictArgument["Start time"] = cState.updateState("SELECT_GAME")
-            cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
 
 
 # POSE_WRONGモード処理　======================================================
@@ -97,8 +98,9 @@ def procPose_wrong(dictArgument):
 
     if event == "POSE_WRONG":
         cCtrlCard.write_result("pose", "T")
+        cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
+
         if cCtrlCard.checkComplete():
             dictArgument["Start time"] = cState.updateState("ENDING")
         else:
             dictArgument["Start time"] = cState.updateState("SELECT_GAME")
-            cState.dictWindow["SELECT_GAME"]["プレイ"].update(disabled=True)
