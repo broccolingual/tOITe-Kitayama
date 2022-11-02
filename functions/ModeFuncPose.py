@@ -7,6 +7,8 @@ from functions.DesignLayout import make_fullimage_layout
 def updateDictProc_Pose(dictProc):
     dictProc_this = {
         "POSE_Q": procPose_Q,
+        "POSE_Q1": procPose_Q1,
+        "POSE_Q2": procPose_Q2,
         "POSE_IMGPROC": procPose_ImageProc,
         "POSE_CORRECT": procPose_correct,
         "POSE_WRONG": procPose_wrong,
@@ -17,6 +19,10 @@ def updateDictProc_Pose(dictProc):
 # レイアウト設定・辞書割り当て =============================================
 def updateDictWindow_Pose(dictWindow):
     layoutPose_Q = make_fullimage_layout("images/tutorial_pose.png", "POSE_Q")
+    layoutPose_Q1 = make_fullimage_layout(
+        "images/tutorial_pose_1.png", "POSE_Q1")
+    layoutPose_Q2 = make_fullimage_layout(
+        "images/tutorial_pose_2.png", "POSE_Q2")
     layoutPose_Correct = make_fullimage_layout(
         "images/clear.png", "POSE_CORRECT")
     layoutPose_Wrong = make_fullimage_layout(
@@ -24,6 +30,8 @@ def updateDictWindow_Pose(dictWindow):
 
     dictLayout = {
         "POSE_Q": layoutPose_Q,
+        "POSE_Q1": layoutPose_Q1,
+        "POSE_Q2": layoutPose_Q2,
         "POSE_IMGPROC": "None",
         "POSE_CORRECT": layoutPose_Correct,
         "POSE_WRONG": layoutPose_Wrong
@@ -37,10 +45,28 @@ def updateDictWindow_Pose(dictWindow):
 def procPose_Q(dictArgument):
     event = dictArgument["Event"]
     cState = dictArgument["State"]
-    proc = dictArgument["ImageProc"]
     cAudioOut = dictArgument["AudioOut"]
 
     if event == "POSE_Q":
+        dictArgument["Start time"] = cState.updateState("POSE_Q1")
+
+
+def procPose_Q1(dictArgument):
+    event = dictArgument["Event"]
+    cState = dictArgument["State"]
+    cAudioOut = dictArgument["AudioOut"]
+
+    if event == "POSE_Q1":
+        dictArgument["Start time"] = cState.updateState("POSE_Q2")
+
+
+def procPose_Q2(dictArgument):
+    event = dictArgument["Event"]
+    cState = dictArgument["State"]
+    proc = dictArgument["ImageProc"]
+    cAudioOut = dictArgument["AudioOut"]
+
+    if event == "POSE_Q2":
         cAudioOut.playSoundAsync("sound/do_attack.wav")
         dictArgument["Start time"] = cState.updateState("POSE_IMGPROC")
         proc.createWindows()
