@@ -12,7 +12,7 @@ class ClsCtrlCard:
         self.dictRecord_Table["tutorial"] = "T"
 
     def Finalize(self):
-        path
+        pass
 
     def setCard(self):
         return True
@@ -25,10 +25,10 @@ class ClsCtrlCard:
         return True
 
     def retry_to_initCard(self):
-        path
+        pass
 
     def initID(self):
-        path
+        pass
 
     def getID(self):
         return self.CurrentID
@@ -44,7 +44,7 @@ class ClsCtrlCard:
         return True
 
     def updata_record_table(self):
-        path
+        pass
 
     def read_result(self):
         return self.dictRecord_Table.copy()
@@ -57,8 +57,8 @@ class ClsCtrlCard:
 
     def checkComplete(self):
         blClear = True
-        for key in self.dictFlagRecord.keys():
-            if self.dictFlagRecord[key] != "T":
+        for key in self.dictRecord_Table.keys():
+            if self.dictRecord_Table[key] != "T":
                 blClear = False
                 break
 
