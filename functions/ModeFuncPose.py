@@ -16,7 +16,7 @@ def updateDictProc_Pose(dictProc):
 
 # レイアウト設定・辞書割り当て =============================================
 def updateDictWindow_Pose(dictWindow):
-    layoutPose_Q = make_fullimage_layout("images/tutorial1.png", "POSE_Q")
+    layoutPose_Q = make_fullimage_layout("images/tutorial_pose.png", "POSE_Q")
     layoutPose_Correct = make_fullimage_layout(
         "images/clear.png", "POSE_CORRECT")
     layoutPose_Wrong = make_fullimage_layout(

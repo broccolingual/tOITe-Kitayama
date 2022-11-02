@@ -48,6 +48,7 @@ def procTutorial_1(dictArgument):
     cAudioOut = dictArgument["AudioOut"]
 
     if event == "TUTORIAL_1" and cAudioOut.getSoundEnd() == True:
+        cAudioOut.playSoundAsync("sound/tutorial2_24.wav")
         dictArgument["Start time"] = cState.updateState("TUTORIAL_2")
 
 
@@ -58,6 +59,7 @@ def procTutorial_2(dictArgument):
     cAudioOut = dictArgument["AudioOut"]
 
     if event == "TUTORIAL_2" and cAudioOut.getSoundEnd() == True:
+        cAudioOut.playSoundAsync("sound/tutorial3_24.wav")
         dictArgument["Start time"] = cState.updateState("TUTORIAL_3")
 
 

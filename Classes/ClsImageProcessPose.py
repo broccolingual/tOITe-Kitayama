@@ -385,14 +385,14 @@ class ClsImageProcessPose(ClsImageProcess):
             # punch (R)
             if self.judgePose(0) and self.previousPoseID not in (0, 2):
                 self.previousPoseID = 0
-                self.enemyHP -= 3
+                self.enemyHP -= 2
                 self.phaseCnt += 1
                 self.setOverlayCenter(
                     self.imOverlayEnemyLeft, self.imOverlayMaskEnemy, dy=0)
             # punch (L)
             elif self.judgePose(1) and self.previousPoseID not in (1, 3):
                 self.previousPoseID = 1
-                self.enemyHP -= 3
+                self.enemyHP -= 2
                 self.phaseCnt += 1
                 self.setOverlayCenter(
                     self.imOverlayEnemyRight, self.imOverlayMaskEnemy, dy=0)
