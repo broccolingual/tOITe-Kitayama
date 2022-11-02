@@ -33,8 +33,8 @@ class ClsImageProcessPose(ClsImageProcess):
         # store enemy/player data
         self.clear = False
         self.gameover = False
-        self.enemyHP = 99
-        self.playerHP = 3
+        self.enemyHP = 72
+        self.playerHP = 5
 
         # phase settings
         self.attackPhase = True
@@ -399,14 +399,14 @@ class ClsImageProcessPose(ClsImageProcess):
             # upper punch (R)
             elif self.judgePose(2) and self.previousPoseID != 2:
                 self.previousPoseID = 2
-                self.enemyHP -= 4
+                self.enemyHP -= 3
                 self.phaseCnt += 1
                 self.setOverlayCenter(
                     self.imOverlayEnemyJump, self.imOverlayMaskEnemy, dy=0)
             # upper punch (L)
             elif self.judgePose(3) and self.previousPoseID != 3:
                 self.previousPoseID = 3
-                self.enemyHP -= 4
+                self.enemyHP -= 3
                 self.phaseCnt += 1
                 self.setOverlayCenter(
                     self.imOverlayEnemyJump, self.imOverlayMaskEnemy, dy=0)
@@ -526,8 +526,8 @@ class ClsImageProcessPose(ClsImageProcess):
         # clear/initialize process
         if self.clear is True:
             self.clear = False
-            self.enemyHP = 99
-            self.playerHP = 3
+            self.enemyHP = 72
+            self.playerHP = 5
             self.frameCnt = 0
             self.attackPhase = True
             self.defenceCheckPhase = False
@@ -536,8 +536,8 @@ class ClsImageProcessPose(ClsImageProcess):
         # gameover/initialize process
         if self.gameover is True:
             self.gameover = False
-            self.enemyHP = 99
-            self.playerHP = 3
+            self.enemyHP = 72
+            self.playerHP = 5
             self.frameCnt = 0
             self.attackPhase = True
             self.defenceCheckPhase = False
